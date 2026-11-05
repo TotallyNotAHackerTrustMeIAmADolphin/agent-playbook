@@ -60,3 +60,10 @@ give evidence, no secrets or customer data. Search first: `gh issue list -R Tota
 
 Only change it via PR or by the maintainer. Keep the file's one rule: every rule stands once.
 Never edit inside a project's `docs/playbook/` checkout; fix it here.
+
+## License
+
+Text (the playbook, `README.md`, `docs/`): [CC BY 4.0](LICENSE-docs). Code files (scripts, hooks,
+agent definition files, plugin files): [MIT](LICENSE). Code blocks inside the playbook may also be
+used under MIT. Reuse either with attribution to this
+repository.
