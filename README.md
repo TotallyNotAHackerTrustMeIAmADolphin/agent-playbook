@@ -25,17 +25,24 @@ claude plugin install playbook@agent-playbook --scope local
 ```
 
 Claude Code reads the plugin from the submodule folder, so bumping the submodule also updates the
-agents (new sessions). The builder model goes into the committed `.claude/settings.json` (it
+agents (new sessions). The builder model and the hand-back check go into the committed `.claude/settings.json` (it
 applies to every sub-agent whose definition names no model, playbook P5); the scratch directory,
 an absolute path that differs per machine, into `.claude/settings.local.json`:
 
 ```json
-{ "env": { "CLAUDE_CODE_SUBAGENT_MODEL": "<builder model>" } }
+{ "env": {
+  "CLAUDE_CODE_SUBAGENT_MODEL": "<builder model>",
+  "PLAYBOOK_BUILDER_CHECK": "<targeted tests + guard tests + linter, under 9 minutes>"
+} }
 ```
 
 ```json
 { "env": { "PLAYBOOK_SCRATCH": "<absolute scratch dir outside the repo>" } }
 ```
+
+The plugin's hooks create every agent worktree under `$PLAYBOOK_SCRATCH/work/` from a fresh
+`origin/main`, and refuse a builder's hand-back while `PLAYBOOK_BUILDER_CHECK` fails in its tree
+(playbook section 4). The hook scripts need `bash`, `git` and `timeout` (Git Bash on Windows has all three; on macOS install coreutils).
 
 Fresh clone of a project: `git clone --recurse-submodules <url>` (or `git submodule update --init`).
 

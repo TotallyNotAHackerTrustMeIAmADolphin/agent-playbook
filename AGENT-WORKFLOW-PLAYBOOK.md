@@ -110,7 +110,7 @@ Each answer is one line in the project's `CLAUDE.md`, under the A10 heading that
 `Pn: <answer>` or `Pn: default` (P7 and P8 are tables). A project rule that matches no P goes
 under the nearest A10 heading. A value a tool executes lives in that tool, and the `CLAUDE.md`
 line names the file instead of restating the value: the settings files for the builder
-model (`.claude/settings.json`) and the scratch path (`.claude/settings.local.json`) (P5, P6), the A9 script and its known-red file (P11), the setup skill's `docs/agents/`
+model and the gate check (`.claude/settings.json`) and the scratch path (`.claude/settings.local.json`) (P5, P6), the A9 script and its known-red file (P11), the setup skill's `docs/agents/`
 files (P3; the glossary layout of P13), the plugin installation (P16). A value shared by all projects may stand in the
 global `CLAUDE.md`, and the project line points there. Nowhere else: no second project file, no
 memory note; the one exception is a rule for one module only, in `.claude/rules/` (A10). A
@@ -124,7 +124,7 @@ restated in `CLAUDE.md`. Then work the checklist in section 12.
 | P3 | Issue tracker, CLI, labels | Core, 3 | GitHub Issues via `gh`; `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`; one roadmap issue |
 | P4 | Deploy window, command, verification | 6 | After a production job finishes or off-peak; full sha from a clean main checkout; the service's health signal |
 | P5 | Parallelism, builder model, turn cap | 1, 2, 4 | 3 builders on disjoint files (a project may set 1-5); mid-tier model, set as `env.CLAUDE_CODE_SUBAGENT_MODEL` in `.claude/settings.json` (it applies to every sub-agent whose definition names no model: builder, researcher, `general-purpose`, Explore, Plan; the reviewer's is `opus`; pass a model at dispatch for an ops agent that needs a stronger one); `maxTurns` from the plugin. Or `single writer` (section 1) |
-| P6 | Test, lint, environment commands | 4, A1 | One shared environment; quiet flags; `<scratch>` is `env.PLAYBOOK_SCRATCH` in the uncommitted `.claude/settings.local.json` (an absolute, machine-specific path); `<scratch>/work/` for worktrees, `<scratch>/<role>-<n>/` for each agent's temp files; one read-only `<scratch>/baseline/` |
+| P6 | Test, lint, environment commands | 4, A1 | One shared environment; quiet flags; `<scratch>` is `env.PLAYBOOK_SCRATCH` in the uncommitted `.claude/settings.local.json` (an absolute, machine-specific path); `env.PLAYBOOK_BUILDER_CHECK` in `.claude/settings.json` is the command the hand-back gate runs in the builder's tree (targeted and guard tests plus the linter, under 9 minutes, section 4); `<scratch>/work/` for worktrees, `<scratch>/<role>-<n>/` for each agent's temp files; one read-only `<scratch>/baseline/` |
 | P7 | Risk classes and top-class paths | 5 | The table in section 5 |
 | P8 | Enforcement table | 6 | Tooling for irreversible and single-owner rules and model/config choice; instruction for process rules |
 | P9 | Domain invariants, irreversible paths | 6 | None; if one exists: safe default behind a config flag, invariants only in code, one explicit owner approval to cross |
@@ -272,14 +272,21 @@ behind the definitions.
 - **Budget (A1, `maxTurns`).** Why: context grows every turn, so long builds cost
   disproportionately and a split resets it. An agent cannot see its own context size, so its turn
   count is the gauge; at `maxTurns` it returns partial output and can be resumed via `SendMessage`.
-- **Worktrees are created by hand** (section 8, item 8), not with `isolation: worktree`. Why: this
-  workflow needs `origin/main` as the base and removal only after `MERGED`; the built-in isolation
-  chooses its own base and cleans up on its own schedule.
-- **Tests in the foreground under `timeout` (A1).** Why: a sub-agent can hand back before its own
-  background command finished, and then the tests were never confirmed. On "waiting for
-  background…", nudge at once via `SendMessage`: rerun in the foreground. Treat it as routine,
-  no diagnosis; it recurs. A suite longer than the tool's time limit is split into pieces that fit,
-  listed in `CLAUDE.md` → How to dispatch.
+- **Worktrees come from the plugin's hook** (`isolation: worktree` in the builder, the
+  `WorktreeCreate` hook in the plugin; section 8, item 8). Why: this workflow needs a fresh
+  `origin/main` base, a lock and removal only after `MERGED`; the hook does the first two, Claude
+  Code keeps the tree when the builder finishes, and no dispatch prompt carries the command.
+- **The hand-back gate.** The plugin refuses a builder's report while its tree has uncommitted
+  changes or the project's `PLAYBOOK_BUILDER_CHECK` (P6) fails there, and sends the failing lines
+  back to it. A report whose first word is `PARTIAL:` passes: the coordinator treats the ticket as
+  unfinished and resumes the builder via `SendMessage` or dispatches the rest. Why: a sub-agent
+  can hand back before its own background command finished, and then the tests were never
+  confirmed; the instruction failed repeatedly in prose, so it is a hook (section 6). The check
+  gets 9 minutes; a longer suite is split into pieces listed in `CLAUDE.md` → How to dispatch, and
+  the gate runs the targeted one.
+- **Tests in the foreground under `timeout`** for every agent (the builder's definition says so;
+  the gate covers only the builder). On "waiting for background…" from any agent, nudge at once
+  via `SendMessage`: rerun in the foreground. Treat it as routine, no diagnosis; it recurs.
 - **Name the pattern to follow, flagged if stale (A1).** Why: "do it the way X does" copies X's age
   along with its shape.
 - **Research claims are tagged and terms read (A11).** Why: without web access an agent answers
@@ -500,16 +507,24 @@ For GitHub and `gh`; translate for another host. The coordinator lands PRs only 
    the first review. A forced push uses
    `git push --force-with-lease=<branch>:<expected sha> --force-if-includes`, only on a branch no
    other agent uses; nobody force-pushes `main` or a branch they did not create.
-8. **Worktree lifecycle.** Create: `git worktree add --lock --reason "<agent> #<n>"
-   <scratch>/work/wt-<n> -b ticket-<n>[-<k>] origin/main` (`-<k>` for a second PR on a ticket; a
-   branch cannot be in two worktrees; that builder's scratch subdir is `<scratch>/builder-<n>-<k>/`).
-   Builder trees: remove only after `MERGED` or `CLOSED`: `worktree unlock`, `worktree remove`,
+8. **Worktree lifecycle.** Create: a builder gets its tree from the plugin's hook at
+   `<scratch>/work/agent-<id>`, locked, on a branch off a freshly fetched `origin/main`, and first
+   renames the branch to `ticket-<n>[-<k>]` (`-<k>` for a second PR on a ticket; a branch cannot be
+   in two worktrees; that builder's scratch subdir is `<scratch>/builder-<n>-<k>/`). A single
+   writer (section 1) runs `git worktree add --lock --reason "writer #<n>" <scratch>/work/wt-<n>
+   -b ticket-<n> origin/main` itself. Before re-dispatching a builder for a branch that has a
+   tree, remove that tree and its local branch (keep the remote one): `worktree unlock`, then
+   `worktree remove` (never `--force`); if it refuses, inspect the tree (section 11) first. Builder trees (found by
+   branch in `git worktree list`):
+   remove only after `MERGED` or `CLOSED`: `worktree unlock`, `worktree remove`,
    `branch -D`, delete the remote branch, remove `<scratch>/builder-<n>/`.
    Review trees: `git worktree add --detach <scratch>/work/rev-<p>[-<k>] <sha>`; the coordinator
    removes each with `worktree remove` after its verdict.
    Weekly, as a script (`hygiene.sh`, from A8 with nothing in flight): `gh pr list --head <b>
    --state all` per `ticket-*` branch, remove merged or closed ones as above (never `--force`);
-   remove `rev-*` trees whose PR is merged or closed; `git worktree prune`; list every worktree
+   remove `rev-*` trees whose PR is merged or closed; list `agent-*` trees (a builder that died
+   before renaming, or a worktree another agent made) for removal when no agent runs;
+   `git worktree prune`; list every worktree
    outside `<scratch>/work/`; read-only `git fsck`; `git maintenance run`. Never
    `git branch --merged`. Why: squash-merged commits are not ancestors of `main`.
 9. **No stacked PRs by default:** a ticket depending on an unmerged PR waits. If you must stack,
@@ -632,7 +647,8 @@ one at a time as `ready-for-human` issues (P15).
       CI actions pinned.
 - [ ] The `playbook` plugin, once per clone (README): `claude plugin marketplace add ./docs/playbook
       --scope local` and `claude plugin install playbook@agent-playbook --scope local`. In
-      `.claude/settings.json`: `env.CLAUDE_CODE_SUBAGENT_MODEL` (P5); `.claude/settings.local.json`:
+      `.claude/settings.json`: `env.CLAUDE_CODE_SUBAGENT_MODEL` (P5) and
+      `env.PLAYBOOK_BUILDER_CHECK` (P6); `.claude/settings.local.json`:
       `env.PLAYBOOK_SCRATCH` (P6).
       No copies of the agent definitions in `.claude/agents/`.
 - [ ] `land.sh`, `ship.sh`, the deploy log, A9 with its verdict logic tested on canned parts.
@@ -665,7 +681,8 @@ Dispatch prompt:
 Build issue #<n> (<title>), part of #<m>. Read it with: <exact CLI command; known-broken alternative>.
 Also pick up: <low notes from earlier reviews in this module>.
 Risk class: <class>. <Domain rules, e.g. fail closed / refuse what you cannot verify.>
-Worktree: git -C <repo> worktree add --lock --reason "builder #<n>" <scratch>/work/wt-<n> -b ticket-<n> origin/main
+Branch: ticket-<n>[-<k>]
+<Stacked PR only:> Base: <parent branch>
 Load skill: mattpocock-skills:<tdd | diagnosing-bugs | codebase-design>
 <For a multi-ticket job: the steps, inline.>
 Pattern to follow: <module/file>. <Change convention, e.g. remove old code in this PR.>

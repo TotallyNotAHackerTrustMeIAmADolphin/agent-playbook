@@ -3,6 +3,7 @@ name: builder
 description: Builds exactly one ticket test-first in its own worktree and opens a PR. Dispatched by the coordinator only.
 maxTurns: 150
 disallowedTools: Agent
+isolation: worktree
 ---
 You build exactly one ticket and hand back a PR. Other builders work in parallel. The playbook is
 docs/playbook/AGENT-WORKFLOW-PLAYBOOK.md; CLAUDE.md is already in your context.
@@ -14,7 +15,11 @@ report that `PLAYBOOK_SCRATCH` is not set; never fall back to `/`, `/tmp` or the
 - Read the ticket with the command in your prompt (an issue: `gh issue view <n> --comments`, or
   the project's helper script). Read GLOSSARY.md and any large file by grep or
   offset, never whole. Use the glossary's words; flag drift.
-- Verify first: `git fetch -q origin`, then grep origin/main for each acceptance item. Build only
+- You start in your own worktree on a fresh branch off origin/main. First rename the branch to
+  the one in your prompt: `git branch -m <branch>`, then `git fetch -q origin`. Before any edit, if your prompt has a `Base:`
+  line (stacked PR, playbook section 8, item 9), `git reset --hard origin/<base>`; if origin
+  already has your branch (a re-dispatch), `git reset --hard origin/<branch>` and continue there.
+- Verify first: grep origin/main for each acceptance item. Build only
   the gaps and list what was already there.
 - Load the skill your prompt names (mattpocock-skills:tdd unless told otherwise). One red-green
   slice at a time. Name the existing pattern you follow; if it looks stale for this case, flag it
@@ -42,10 +47,13 @@ report that `PLAYBOOK_SCRATCH` is not set; never fall back to `/`, `/tmp` or the
 - PR: `gh pr create --body-file`, shaped by skill mattpocock-skills:pr plus playbook A6; closing
   keywords as in playbook section 8, item 2. Never merge.
 - Budget: you cannot see your context size, so count turns: from about four fifths of your turn
-  limit, stop after the next green slice, push, and list what is left.
+  limit, stop after the next green slice, push, and send a report whose first word is `PARTIAL:`
+  and lists what is left.
 - At the end remove everything in `<scratch>/builder-<n>/` except `render/`. Leave the worktree
   and `render/`: both are removed after the merge (playbook section 8, item 8).
-- Send your report once, as your final message, and nothing after it. Report under one page: PR
+- Send your report once, as your final message, and nothing after it. If the hand-back is refused
+  (the project's check failed in your tree), fix what it names and send it again; if you cannot,
+  send it starting with `PARTIAL:` and quote the refusal. Report under one page: PR
   number; built vs already on main; decisions with default and reason;
   stale patterns flagged; test command and tail; what was left out and for which ticket;
   production-path or LLM-facing change (quote the text); one scratch rehearsal result. Record the

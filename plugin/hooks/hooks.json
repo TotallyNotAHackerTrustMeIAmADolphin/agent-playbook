@@ -1,0 +1,11 @@
+{
+  "hooks": {
+    "WorktreeCreate": [
+      { "hooks": [ { "type": "command", "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/worktree-create.sh\"", "timeout": 120 } ] }
+    ],
+    "PreToolUse": [
+      { "matcher": "SubagentHandback",
+        "hooks": [ { "type": "command", "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/builder-gate.sh\"", "timeout": 600 } ] }
+    ]
+  }
+}
