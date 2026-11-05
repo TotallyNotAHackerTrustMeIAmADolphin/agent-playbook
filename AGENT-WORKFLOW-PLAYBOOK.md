@@ -49,6 +49,8 @@ engineering work goes to a fresh sub-agent, one step per agent.
 | **Fixer** (usually the builder, resumed with A4) | Review findings on the same branch | The same branch | Widen scope unannounced |
 | **Ops agents** (`researcher` A11; diagnosis, audits, rehearsals, design debates) | `research`, `diagnosing-bugs`, `codebase-design`, old-versus-new rehearsals | Read-only production views; one shared scratch copy | Write to production; copy production data privately |
 
+Single-writer projects (P5) skip the builder role: section 1.
+
 **The loop:** `design → spec → tickets → triage → pick → verify unbuilt → dispatch → build → review ⇄ fix → land → batch CI → deploy → verify → next`
 
 0. **Feed the backlog:** design with the owner (`grilling`); spec, tickets and triage from the
@@ -121,9 +123,9 @@ feedback), never restated in `CLAUDE.md`. Then work the checklist in section 12.
 | P2 | What no agent may touch by hand | 6 | Production checkout, data, credentials, any state-changing CLI |
 | P3 | Issue tracker, CLI, labels | Core, 3 | GitHub Issues via `gh`; `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`; one roadmap issue |
 | P4 | Deploy window, command, verification | 6 | After a production job finishes or off-peak; full sha from a clean main checkout; the service's health signal |
-| P5 | Parallelism, builder model, turn cap | 2, 4 | 1 to about 5 builders on disjoint files; mid-tier model; `maxTurns: 150` |
+| P5 | Parallelism, builder model, turn cap | 1, 2, 4 | 1 to about 5 builders on disjoint files; mid-tier model; `maxTurns: 150`. Or `single writer` (section 1) |
 | P6 | Test, lint, environment commands | 4, A1 | One shared environment; quiet flags; `<scratch>/work/` for worktrees, `<scratch>/<role>-<n>/` for each agent's temp files; one read-only `<scratch>/baseline/` |
-| P7 | Risk classes and top-class paths | 5 | The four-level table in section 5 |
+| P7 | Risk classes and top-class paths | 5 | The table in section 5 |
 | P8 | Enforcement table | 6 | Tooling for irreversible and single-owner rules and model/config choice; instruction for process rules |
 | P9 | Domain invariants, irreversible paths | 6 | None; if one exists: safe default behind a config flag, invariants only in code, one explicit owner approval to cross |
 | P10 | Resource thresholds | 7 | Dispatch up to 95% of the 5-hour window; stop developing at 95% weekly; clean up above about 85% disk; agent work under `nice` |
@@ -144,6 +146,19 @@ merge-conflict resolution included, goes to an agent; nits go back to the builde
 `SendMessage` while its cache is warm. Why: the coordinator's context is re-read every turn and is
 several times a fresh agent's, so each edit-and-test turn there is expensive, and a bloated
 coordinator cannot run for days.
+
+**Single-writer mode (P5: `single writer`).** One session works with the owner and edits files
+itself; there are no builders. It works in one worktree per ticket (section 8, item 8), of which it
+is the only user, and cleans it up after the merge as `land.sh` does for a builder. Dropped: the
+hard rule above and every rule about builders (Core steps 3-4, the builder floor and count in
+section 2 and A7, the rate-limit row's floor clause, the idle-time metric, the `Files:` overlap
+check, A1, A4, the `builder.md` copy in section 12). Kept: tickets in the tracker, one branch and PR
+per ticket with closing keywords, the risk classes (config/ops and above: a separate `reviewer`
+dispatch, never a self-review; docs and config values: the writer reads its own diff and says so in
+the PR), batch CI, scripts, `CLAUDE.md` as the only rule file. The owner decides when the full rules
+return: when a second writer (an agent or the owner) edits the repo in parallel, or the project
+starts running a production system (section 6). Why: with one writer and the owner in the loop, a
+coordinator that never edits only adds hand-offs.
 
 ---
 
@@ -268,10 +283,10 @@ Why: an embedded review grades the work against the ticket's literal text and mi
 it never named; a deploy-only gate leaves unreviewed code and LLM text on `main`. The review
 craft (two axes, mutation, adversarial probes, mocks) is in the reviewer definition, A2.
 
-**Reviewer model and stance:** at least as strong as the builder, with an adversarial prompt, not
-a copy of the builder's. The same model family is acceptable. Independence rests on the separate
-dispatch and the stance; the mutation tests are the check that does not depend on the reviewer's
-judgement.
+**Reviewer model and stance:** at least as strong as the builder (or the writer, section 1), with an
+adversarial prompt, not a copy of the builder's. The same model family is acceptable. Independence
+rests on the separate dispatch and the stance; the mutation tests are the check that does not depend
+on the reviewer's judgement.
 
 **Delta re-reviews until CLEAN** (A3); expect two or three rounds on a high-risk PR. Why: a fix to
 a guard often opens a bypass next to the one it closes. **Re-review only when it pays:** the fix
@@ -298,14 +313,21 @@ own). Grep current main before filing. Why: the reviewer's base may be stale.
 | Class | Files (define per project) | Gates |
 |---|---|---|
 | docs | only `*.md` that no program or LLM reads at runtime | Coordinator reads the diff; no review agent, no CI, no deploy |
+| config values | only existing numbers and texts (thresholds, labels, list entries) in config files, each with a test that asserts its effect, named in the PR body; no boolean, enum or other value that selects a code path; nothing named in P9 or the enforcement table, no permission, allow, deny or egress list; no new key, code or script; nothing on the critical list | Coordinator reads the diff; batch CI; deploy in window |
 | config/ops | config, ops scripts, service units; no core code | 1 review; batch CI; deploy in window; scripted dry-run |
 | core | core code outside the critical set | 1 review; batch CI; scripted rehearsal if you have one |
 | critical | irreversible, security- or safety-relevant, text an LLM reads (prompts, `CLAUDE.md`, agent definitions), scripts that write production data | 1 review **with mutation tests in a sandbox** (for text instead: a review against this playbook and the code it steers; no rehearsal); batch CI; a bespoke rehearsal when the plain one misses the new behaviour |
 
-The docs class is the one exception to "review gates the merge"; a file any program or LLM reads
-at runtime is never docs. Why the critical class keeps the full gate: review catches defects there
-that CI and rehearsals miss. The plain rehearsal can be a script because its verdict is
-mechanical; defects are found by rehearsals built for the new behaviour.
+A PR that mixes config values with other changes, or a value change that may not qualify, is classed
+by its files as usual, never lower than config/ops. A config-values PR may touch a test file only to
+update the asserted value, and that test passes on the PR head before the merge. Why: a review agent
+costs a whole build's tokens and found nothing on value-only changes; the tests that assert the
+values' effect are the gate there.
+
+The docs and config-values classes are the exceptions to "review gates the merge"; a file any
+program or LLM reads at runtime is never docs. Why the critical class keeps the full gate: review
+catches defects there that CI and rehearsals miss. The plain rehearsal can be a script because its
+verdict is mechanical; defects are found by rehearsals built for the new behaviour.
 
 ---
 
