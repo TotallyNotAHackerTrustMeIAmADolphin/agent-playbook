@@ -32,7 +32,8 @@ an absolute path that differs per machine, into `.claude/settings.local.json`:
 ```json
 { "env": {
   "CLAUDE_CODE_SUBAGENT_MODEL": "<builder model>",
-  "PLAYBOOK_BUILDER_CHECK": "<targeted tests + guard tests + linter, under 9 minutes>"
+  "PLAYBOOK_BUILDER_CHECK": "<targeted tests + guard tests + linter, under 9 minutes>",
+  "PLAYBOOK_REQUIRE_TICKET": "1"
 } }
 ```
 
@@ -41,8 +42,9 @@ an absolute path that differs per machine, into `.claude/settings.local.json`:
 ```
 
 The plugin's hooks create every agent worktree under `$PLAYBOOK_SCRATCH/work/` from a fresh
-`origin/main`, and refuse a builder's hand-back while `PLAYBOOK_BUILDER_CHECK` fails in its tree
-(playbook section 4). The hook scripts need `bash`, `git` and `timeout` (Git Bash on Windows has all three; on macOS install coreutils).
+`origin/main`, refuse a builder's hand-back while `PLAYBOOK_BUILDER_CHECK` fails in its tree, and
+with `PLAYBOOK_REQUIRE_TICKET=1` refuse a dispatch whose description does not start with an
+issue number (playbook section 4). The hook scripts need `bash`, `git` and `timeout` (Git Bash on Windows has all three; on macOS install coreutils).
 
 Fresh clone of a project: `git clone --recurse-submodules <url>` (or `git submodule update --init`).
 

@@ -264,8 +264,10 @@ behind the definitions.
   permission mode. Revisit teams only for parallel review lenses (security, performance, tests).
 - **Every dispatch description starts with the issue number**, never the PR number:
   `#<n> build`, `#<n> review PR <p>`, also for a delta, a researcher or an ops agent working for
-  that issue. Why: section 9's token metric reads it from the transcripts; nobody types usage
-  numbers by hand.
+  that issue; `#0 <what>` for work without a ticket (not counted). With
+  `PLAYBOOK_REQUIRE_TICKET=1` in `.claude/settings.json` the plugin refuses any other description
+  from the main session; agents' own helpers pass. Why: section 9's token metric reads it from the
+  transcripts; nobody types usage numbers by hand.
 - **Large files by grep and offset (A1).** Why: cost is turns times context, so a large read is
   paid again on every later turn. `CLAUDE.md` itself is cheap: in the reference project the docs
   preamble was about 0.1% of a builder's cost, so keep it within A10's budget rather than out.

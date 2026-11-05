@@ -5,7 +5,9 @@
     ],
     "PreToolUse": [
       { "matcher": "SubagentHandback",
-        "hooks": [ { "type": "command", "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/builder-gate.sh\"", "timeout": 600 } ] }
+        "hooks": [ { "type": "command", "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/builder-gate.sh\"", "timeout": 600 } ] },
+      { "matcher": "Agent|Task",
+        "hooks": [ { "type": "command", "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/dispatch-gate.sh\"", "timeout": 10 } ] }
     ]
   }
 }

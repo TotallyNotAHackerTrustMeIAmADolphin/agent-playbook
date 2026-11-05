@@ -12,8 +12,8 @@ so it grows with turns times context. A relative gauge, not cost: cache reads do
 models differ. Each message id counts once.
 
 Limits: only this machine, only transcripts Claude Code has not cleaned up yet
-(`cleanupPeriodDays`), only dispatches whose description starts with `#<n>` (the rest are
-counted and reported). In single-writer mode the session's own work is not a sub-agent and is
+(`cleanupPeriodDays`), only dispatches whose description starts with `#<n>` (the rest, and
+`#0` for work without a ticket, are counted and reported as unattributed). In single-writer mode the session's own work is not a sub-agent and is
 not counted.
 
 Usage: python3 ticket-usage.py [--project <repo dir>] [--ticket <n>] [--factor 3]
@@ -71,6 +71,7 @@ def collect(pdir):
             continue
         hit = TICKET.match(meta.get("description") or "")
         ticket = int(hit.group(1)) if hit else None
+        ticket = ticket or None  # '#0' marks work without a ticket: unattributed
         rows.append((ticket, meta.get("agentType") or "?", agent_tokens(transcript)))
     return rows
 

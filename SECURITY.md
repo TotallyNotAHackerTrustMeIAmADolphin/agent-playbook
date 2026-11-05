@@ -7,7 +7,10 @@ project installs it, its hooks run shell scripts on that machine.
   and `git worktree add` under the configured scratch directory.
 - `PreToolUse` on `SubagentHandback`: before a builder hands back, runs the project's own check
   command (`PLAYBOOK_BUILDER_CHECK`) in the builder's tree. Running that configured command is
-  by design, not a finding.- Its agent definitions steer what agents do in your repository.
+  by design, not a finding.
+- `PreToolUse` on `Agent`: reads each dispatch's input and checks the description; runs nothing.
+
+Its agent definitions also steer what agents do in your repository.
 
 Read `plugin/` before installing, and pin the submodule to a commit you have read (README, Get
 updates).
