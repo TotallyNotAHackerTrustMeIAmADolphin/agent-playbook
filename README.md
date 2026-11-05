@@ -49,6 +49,10 @@ claude plugin marketplace add ./docs/playbook --scope local
 claude plugin install playbook@agent-playbook --scope local
 ```
 
+Install or update it while no playbook agent runs (its hand-back hook acts on builders already in
+flight), and from the submodule, not from GitHub: a GitHub source follows the playbook's `main`,
+not the commit the project pins.
+
 Claude Code reads the plugin in place from the folder (not a cached copy), so bumping the
 submodule also updates the agents at the next session start; the plugin version does not matter.
 The marketplace registration is per user, though: on a machine with several projects, the one that
@@ -73,8 +77,9 @@ an absolute path that differs per machine, into `.claude/settings.local.json`:
 { "env": { "PLAYBOOK_SCRATCH": "<absolute scratch dir outside the repo>" } }
 ```
 
-Keep the scratch directory out of cloud-synced folders (OneDrive, Dropbox, Nextcloud): every agent
-worktree lands there, and the sync client re-reads each one.
+Keep the scratch directory and the repository out of cloud-synced folders (OneDrive, Dropbox,
+Nextcloud): every agent worktree lands in scratch and the sync client re-reads each one, and an
+online-only placeholder in `.git` makes `git worktree add` fail.
 
 The plugin also ships `land.sh` and `hygiene.sh` (playbook section 8) and `batch-ci.sh`
 (A9) for the coordinator and `usage.py`, which reads the subscription's 5-hour and weekly limits (section 7); its
