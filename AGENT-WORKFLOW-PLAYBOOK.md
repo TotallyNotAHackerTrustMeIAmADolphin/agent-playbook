@@ -79,7 +79,6 @@ Single-writer projects (P5) skip the builder role: section 1.
 [ ] date (owner's zone); usage check; df -h
 [ ] Count running builders. Below the floor (section 2)? Dispatch FIRST.
 [ ] Hand-backs: read report -> class the PR -> reviewer / fix / delta / land.
-    Each hand-back: gh pr comment <p> --body "agent-usage: <role> <tokens> tokens, <tool uses> tool uses".
 [ ] Merged since last batch CI? Start batch CI on main's sha (never two at once).
 [ ] Batch CI red? Freeze deploys; bisect and revert by PR (section 7).
 [ ] Green batch CI and undeployed main? Arm ship.sh for the next window.
@@ -263,6 +262,10 @@ behind the definitions.
   whole conversation, which is exactly the cost a fresh agent avoids; agent teams are experimental,
   cannot resume in-process teammates, give no file isolation and start every teammate in the lead's
   permission mode. Revisit teams only for parallel review lenses (security, performance, tests).
+- **Every dispatch description starts with the issue number**, never the PR number:
+  `#<n> build`, `#<n> review PR <p>`, also for a delta, a researcher or an ops agent working for
+  that issue. Why: section 9's token metric reads it from the transcripts; nobody types usage
+  numbers by hand.
 - **Large files by grep and offset (A1).** Why: cost is turns times context, so a large read is
   paid again on every later turn. `CLAUDE.md` itself is cheap: in the reference project the docs
   preamble was about 0.1% of a builder's cost, so keep it within A10's budget rather than out.
@@ -546,7 +549,7 @@ For GitHub and `gh`; translate for another host. The coordinator lands PRs only 
 
 | Metric | Definition | Starting guess |
 |---|---|---|
-| Tokens per ticket | Sum of the PR's `agent-usage:` comments (A7) | Flag above 3 × median |
+| Tokens per ticket | Python 3 (`python` on Windows): `python3 docs/playbook/plugin/scripts/ticket-usage.py`: tokens processed (a relative gauge, not cost) by every sub-agent whose description starts with `#<n>` (section 4), from the transcripts on this machine that Claude Code has not yet cleaned up; it reports what it could not attribute. Single writer: it counts only the review and research agents | Flag above 3 × median (the script marks it) |
 | Review rounds per PR | Reviews until CLEAN, per risk class | About 1 for docs/config, 2-3 for critical |
 | Escape rate | Defects found after merge that review did not name, per 10 merged PRs | Under 1; each escape gets a rule or guard test. Escapes after a skipped re-review (section 5) are counted separately; any one is a `feedback` issue to lower the 30-line threshold |
 | Lead time | `ready-for-agent` to merged, merged to deployed | Track median and worst |
