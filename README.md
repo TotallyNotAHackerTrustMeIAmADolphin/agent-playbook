@@ -1,8 +1,31 @@
-﻿# agent-playbook
+# agent-playbook
 
-Central, project-agnostic **Agent Workflow Playbook** (`AGENT-WORKFLOW-PLAYBOOK.md`).
-Projects include it as a git submodule instead of keeping copies. A project's own rules (its
-answers to P1-P17) live in one place only: its `CLAUDE.md`, shaped by the playbook's A10.
+A playbook for running software projects with [Claude Code](https://claude.com/claude-code) agents:
+one long-running **coordinator** session picks tickets from GitHub issues, dispatches **builder**
+sub-agents that each work in their own git worktree and open a pull request, has code PRs reviewed
+by an independent **reviewer** agent (by risk class), and merges only the reviewed commit. The rules
+for that loop are in [`AGENT-WORKFLOW-PLAYBOOK.md`](AGENT-WORKFLOW-PLAYBOOK.md); its Core section
+(about 70 lines) is read at session start, the rest is looked up when needed.
+
+**Who it is for:** someone who already uses Claude Code on a GitHub repository and wants agents to
+work through a backlog with review gates, usage limits and cleanup, instead of one chat at a time.
+You need `git`, `gh` (logged in), `bash` with `timeout` and `perl` (Git Bash on Windows has both; on
+macOS install coreutils) and Python 3.
+
+**What you get:**
+- the playbook text, pinned per project as a git submodule, so every project reads the same rules;
+- a Claude Code plugin with the builder, reviewer and researcher agents and hooks that create
+  every agent worktree from a fresh `origin/main`, refuse a builder's hand-back while the
+  project's check fails, and optionally refuse a dispatch without a ticket number;
+- coordinator scripts: merge a reviewed PR (`land.sh`), clean up (`hygiene.sh`), run the full
+  suite once per batch (`batch-ci.sh`, pytest-shaped runners), read the usage limits (`usage.py`),
+  count tokens per ticket (`ticket-usage.py`), and check a project's setup (`check-setup.sh`).
+
+**Status:** it grew out of one owner's projects and is changed through the feedback of the agents
+that use it (see [Give feedback](#give-feedback-agents-do-this-it-improves-it-for-everyone)). Expect
+it to change; a project pins a commit and bumps when it wants. A project's own rules (its answers to
+the playbook's questions P1-P17, section 0) live in one place only: its `CLAUDE.md`, shaped by the
+playbook's template A10.
 
 ## Use it in a project
 
