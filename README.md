@@ -99,8 +99,7 @@ Projects that keep a copy of `AGENT-WORKFLOW-PLAYBOOK.md`, or a `PROJECT-<NAME>-
 
    | The rule is | It goes to |
    |---|---|
-   | An answer to a P (P1-P17) | `Pn: <answer>` under the A10 heading that names it |
-   | A value a tool runs (model, check command, paths, CI parts) | that tool's settings or script; `CLAUDE.md` names the file |
+   | An answer to a P, or a value a tool runs | where playbook section 0 says (a `Pn:` line, or the tool's file) |
    | A rule for one module or folder only | `.claude/rules/<module>.md` with a `paths:` list (A10) |
    | Any other project rule | one line under the nearest A10 heading |
    | Why a rule exists, evidence, incidents, superseded values | `docs/HISTORY.md` |
@@ -117,8 +116,8 @@ Projects that keep a copy of `AGENT-WORKFLOW-PLAYBOOK.md`, or a `PROJECT-<NAME>-
 ## Get updates (only when you want them)
 
 First check that `docs/playbook` is a submodule: `git ls-files -s docs/playbook` prints one line
-with mode `160000`. If it lists files, it is a copy; migrate it first (above), since the commands
-below would run in the project's own repository.
+with mode `160000`. If it lists files or nothing, migrate first (above): the commands below would
+commit a copy's local edits as a playbook bump.
 
 ```bash
 git submodule update --remote docs/playbook   # pull latest
