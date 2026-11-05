@@ -1,0 +1,11 @@
+{
+  "name": "agent-playbook",
+  "owner": { "name": "agent-playbook maintainers" },
+  "plugins": [
+    {
+      "name": "playbook",
+      "source": "./plugin",
+      "description": "Builder, reviewer and researcher agents of the Agent Workflow Playbook."
+    }
+  ]
+}

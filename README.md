@@ -15,6 +15,28 @@ Fixed path: `docs/playbook/` (the playbook's own commands assume it). Then write
 from A10; the line under its title points every session at Core. Evidence and history go to
 `docs/HISTORY.md`. There is no second project rule file.
 
+The builder, reviewer and researcher agents ship from this repo as the `playbook` plugin. Load it
+from the submodule, once per clone (it writes the absolute path to the uncommitted
+`.claude/settings.local.json`):
+
+```bash
+claude plugin marketplace add ./docs/playbook --scope local
+claude plugin install playbook@agent-playbook --scope local
+```
+
+Claude Code reads the plugin from the submodule folder, so bumping the submodule also updates the
+agents (new sessions). The builder model goes into the committed `.claude/settings.json` (it
+applies to every sub-agent whose definition names no model, playbook P5); the scratch directory,
+an absolute path that differs per machine, into `.claude/settings.local.json`:
+
+```json
+{ "env": { "CLAUDE_CODE_SUBAGENT_MODEL": "<builder model>" } }
+```
+
+```json
+{ "env": { "PLAYBOOK_SCRATCH": "<absolute scratch dir outside the repo>" } }
+```
+
 Fresh clone of a project: `git clone --recurse-submodules <url>` (or `git submodule update --init`).
 
 ## Migrating from a copy or a project playbook file
@@ -26,8 +48,10 @@ Projects that keep a copy of `AGENT-WORKFLOW-PLAYBOOK.md`, or a `PROJECT-<NAME>-
 2. Rewrite `CLAUDE.md` from A10: one line per P answer (P7 and P8 are tables), merged with what `CLAUDE.md` and the
    project file said. Where they disagree, decide once and keep only that line.
 3. Move evidence, incidents and history from the project file into `docs/HISTORY.md`; delete the
-   project file and any other file restating rules (orchestration notes, prompt collections). Tool
-   configuration stays: `.claude/agents/`, `docs/agents/`, scripts.
+   project file and any other file restating rules (orchestration notes, prompt collections). Delete
+   copies of the builder, reviewer and researcher from `.claude/agents/` and load the plugin
+   instead (above); move the builder's `model:` into `.claude/settings.json`. Other tool configuration
+   stays: project-only agents, `docs/agents/`, scripts.
 4. `git rm -r` the copy, add the submodule as above, point any awk command at
    `docs/playbook/AGENT-WORKFLOW-PLAYBOOK.md`.
 5. Re-check `CLAUDE.md` against the playbook's commit log since the copy's date.

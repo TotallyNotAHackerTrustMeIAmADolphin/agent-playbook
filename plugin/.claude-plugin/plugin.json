@@ -1,0 +1,7 @@
+{
+  "name": "playbook",
+  "version": "0.1.0",
+  "description": "Builder, reviewer and researcher agents of the Agent Workflow Playbook. Load it from the project's docs/playbook submodule (see README).",
+  "author": { "name": "agent-playbook maintainers" },
+  "license": "MIT"
+}
