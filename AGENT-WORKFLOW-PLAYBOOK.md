@@ -107,7 +107,9 @@ Single-writer projects (P5) skip the builder role: section 1.
 ## 0. What your project decides (P1-P17)
 
 Each answer is one line in the project's `CLAUDE.md`, under the A10 heading that names its P:
-`Pn: <answer>` or `Pn: default` (P7 and P8 are tables). A project rule that matches no P goes
+`Pn: <answer>`, `Pn: default` or `Pn: n/a (<reason>)` for a P the project does not have, such as
+P4 without a deployment (P7 and P8 are tables). A project without a test suite runs its build as
+the P6 check, failing on any warning (a document build, say). A project rule that matches no P goes
 under the nearest A10 heading. A value a tool executes lives in that tool, and the `CLAUDE.md`
 line names the file instead of restating the value: the settings files for the builder
 model and the gate check (`.claude/settings.json`) and the scratch path (`.claude/settings.local.json`) (P5, P6), the batch CI settings and the known-red file (P11, A9), the setup skill's `docs/agents/`

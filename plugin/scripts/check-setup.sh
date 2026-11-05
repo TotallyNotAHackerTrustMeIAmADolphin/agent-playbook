@@ -56,11 +56,11 @@ $(printf '%s\n' "$copies" | indent)"
 # CLAUDE.md: present, under 200 lines, pointing at Core (A10)
 if [ -f CLAUDE.md ]; then
   n=$(wc -l < CLAUDE.md)
-  [ "$n" -lt 200 ] && ok "CLAUDE.md has $n lines" || fail "CLAUDE.md has $n lines; A10 says under 200"
+  [ "$n" -lt 200 ] && ok "CLAUDE.md has $n lines" || fail "CLAUDE.md has $n lines; A10 says under 200 (move module rules to .claude/rules/, history to docs/HISTORY.md: README, Migrating)"
   grep -q "$PB/AGENT-WORKFLOW-PLAYBOOK.md" CLAUDE.md && ok "CLAUDE.md points at the playbook" ||
-    fail "CLAUDE.md does not name $PB/AGENT-WORKFLOW-PLAYBOOK.md (A10, line under the title)"
+    fail "CLAUDE.md does not name $PB/AGENT-WORKFLOW-PLAYBOOK.md (add A10's line under the title)"
 else
-  fail "no CLAUDE.md (A10)"
+  fail "no CLAUDE.md (write it from the A10 skeleton)"
 fi
 
 # The owner's one-time setup skill (section 12): docs/agents/ and the CLAUDE.md block it writes
@@ -129,7 +129,7 @@ done
 s=$(sed -n 's/.*"PLAYBOOK_SCRATCH" *: *"\([^"]*\)".*/\1/p' .claude/settings.local.json 2>/dev/null | sed 's/\\\\/\\/g')
 case "$s" in
   '') fail "PLAYBOOK_SCRATCH missing from .claude/settings.local.json (README; P6)";;
-  /*|[A-Za-z]:[/\\]*) [ -d "$s" ] && ok "PLAYBOOK_SCRATCH exists" || fail "PLAYBOOK_SCRATCH '$s' does not exist";;
+  /*|[A-Za-z]:[/\\]*) [ -d "$s" ] && ok "PLAYBOOK_SCRATCH exists" || fail "PLAYBOOK_SCRATCH '$s' does not exist (create it, outside cloud-synced folders)";;
   *) fail "PLAYBOOK_SCRATCH '$s' is not an absolute path";;
 esac
 git ls-files --error-unmatch .claude/settings.local.json >/dev/null 2>&1 &&
