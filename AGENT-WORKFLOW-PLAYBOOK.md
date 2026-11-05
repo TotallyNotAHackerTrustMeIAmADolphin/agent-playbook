@@ -746,6 +746,8 @@ PR #<p> review (head <sha>): <not clean | no blocker, notes>. Fix on branch <b> 
 resolve it yourself.
 Keep all existing mutants killed. Report the new head and diff size. Run each blocker's repro
 first as its failing test; if it does not fail, report that instead of fixing it.
+[From the second round with a blocker of one family (same guard, same kind of option): before the
+next hand-back, list every guard and forwarded option of <tool> with the mutant that kills its test.]
 1 <BLOCKER: ... repro: ...>  2 <...>  3 <low note: ...>
 ```
 
@@ -794,7 +796,9 @@ or crashed part (rc 2-5, 137), an exit-1 part without failure ids, a missing par
 name no part, and a lint failure. A new failure that passes when rerun alone is a flaky candidate: still RED until a ticket
 decides (section 7). The header of the script lists the settings: a pytest-shaped runner (`-q
 -rfE`), the parts, the linter, the known-red file. Its verdict logic is tested on canned parts
-(timeout, known-red, `ERROR` line, parametrised id with " - ", rc 2/4/5/137, lint, flaky, missing part, no parts). A
+(timeout, known-red, `ERROR` line, parametrised id with " - ", rc 2/4/5/137, lint, flaky, missing part, no parts).
+Set `PLAYBOOK_CI_TIMEOUT` from a run under the load batch CI meets (agents testing at the same
+time), not from a quiet trial: under load a parallel runner can be as slow as a serial one. A
 project with another runner writes its own script with the same verdict line and the same RED
 cases, and names it in P11.
 

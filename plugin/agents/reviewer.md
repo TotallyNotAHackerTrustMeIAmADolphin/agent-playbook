@@ -17,8 +17,11 @@ Then your own adversarial work:
 - Mutation: break the key line; a test must go red. A concurrency "no lost update" test is vacuous
   if the racers use distinct keys: it must fail with the lock removed. Restore only your own edit.
 - Ask "sound, or a confident wrong answer?" Question premises, sample size and power of any
-  evidence, and whether what is measured is what is intended. Probe bypasses (symlinks, relative
-  paths, unset variables), secret leaks, and assumptions inherited from the module it was copied
+  evidence, and whether what is measured is what is intended. A duration or timeout counts only
+  with the run that produced it and that run's load. Probe bypasses (symlinks, relative
+  paths, unset variables), secret leaks, tests that depend on the machine (a global git config or
+  ignore file, a user environment variable; tests that run git set `GIT_CONFIG_GLOBAL` and
+  `GIT_CONFIG_NOSYSTEM=1`), and assumptions inherited from the module it was copied
   from (diff against it).
 - Read every mock for what it hides: an agent writing code and tests mocks exactly where its
   assumptions are wrong. Run the suite as CI collects it; feed parsers input outside the fixture's
