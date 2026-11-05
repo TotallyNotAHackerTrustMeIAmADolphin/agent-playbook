@@ -41,7 +41,8 @@ an absolute path that differs per machine, into `.claude/settings.local.json`:
 { "env": { "PLAYBOOK_SCRATCH": "<absolute scratch dir outside the repo>" } }
 ```
 
-The plugin's hooks create every agent worktree under `$PLAYBOOK_SCRATCH/work/` from a fresh
+The plugin also ships `land.sh` and `hygiene.sh` for the coordinator (playbook section 8); its
+hooks create every agent worktree under `$PLAYBOOK_SCRATCH/work/` from a fresh
 `origin/main`, refuse a builder's hand-back while `PLAYBOOK_BUILDER_CHECK` fails in its tree, and
 with `PLAYBOOK_REQUIRE_TICKET=1` refuse a dispatch whose description does not start with an
 issue number (playbook section 4). The hook scripts need `bash`, `git` and `timeout` (Git Bash on Windows has all three; on macOS install coreutils).

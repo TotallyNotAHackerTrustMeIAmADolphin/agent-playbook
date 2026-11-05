@@ -66,7 +66,7 @@ Single-writer projects (P5) skip the builder role: section 1.
 4. **Build:** the builder works to its definition and hands back a PR.
 5. **Review:** class the PR (section 5), dispatch a `reviewer` (A2), fix (A4) and delta re-review
    (A3) until CLEAN.
-6. **Land:** `land.sh <pr> <reviewed full sha>` (section 8, item 10). Re-list open issues after a
+6. **Land:** `land.sh <pr> <reviewed full sha> <body file>` (section 8, item 10). Re-list open issues after a
    multi-ticket merge.
 7. **Batch CI** once per batch on main's sha (section 7, A9).
 8. **Deploy** by full sha in the window with `ship.sh` (section 6). Skip if nothing runs in
@@ -462,8 +462,8 @@ can conflict semantically on `main`; the merged-tree check (section 8, item 5) n
 
 ## 8. Git and PR hygiene
 
-For GitHub and `gh`; translate for another host. The coordinator lands PRs only through `land.sh`
-(item 10), written in week one. Why: items 2, 4, 5 and 8 are what a script makes reliable.
+For GitHub and `gh`; translate for another host. The coordinator lands PRs only through the
+plugin's `land.sh` (item 10). Why: items 2, 4, 5 and 8 are what a script makes reliable.
 
 0. **Say which rules the server enforces.** Protect `main` where the plan allows: block
    force-push and deletion, require a PR and linear history, no bypass for agents (one named bot
@@ -481,20 +481,12 @@ For GitHub and `gh`; translate for another host. The coordinator lands PRs only 
 4. **Squash merge with explicit trailers:** subject `"<title> (#N)"`, body file with exactly one
    attribution block copied from the current session. Why: the default body is the branch's WIP
    messages and stale trailers, and model name and session URL change between sessions.
-5. **Merge the reviewed head, then verify, then clean up.**
-   - `gh pr view <p> --json mergeable,mergeStateStatus,headRefOid`: `UNKNOWN` = wait and re-query;
-     `CONFLICTING` goes to the fixer (A4).
-   - **Second and later merges of a batch** (no merge queue: private repos get one only on
-     Enterprise Cloud): `T=$(git merge-tree --write-tree origin/main <head>)`. Exit 0 = clean,
-     the output is one tree oid. Exit 1 = conflict: stop, send to the fixer. **Any other exit =
-     error, output unspecified: stop.** On a clean tree run `git archive $T | tar -x -C <scratch dir>`
-     (or `git commit-tree $T -p origin/main -p <head>` and a detached worktree on it) and the
-     targeted plus guard tests there; both must pass. Needs Git 2.38 or newer.
-   - `gh pr merge <p> --squash --match-head-commit <reviewed full sha> --subject … --body-file …`.
-     A refusal means the head moved: delta re-review, never re-merge without the flag.
-   - Clean up the builder tree (item 8) only after `state == MERGED`. Why: without the pin, a
-     push after the verdict ships unreviewed code; a delete chained after the merge can close an unmerged PR; a removed
-     worktree makes the builder unresumable.
+5. **Merge the reviewed head, then verify, then clean up** (`land.sh`, item 10). A conflict goes
+   to the fixer (A4); a refused merge means the head moved: delta re-review, never re-merge
+   without the pin. Why: without the pin, a push after the verdict ships unreviewed code; each PR
+   was tested on its own base, so a batch's later merges need the merged-tree check (no merge
+   queue: private repos get one only on Enterprise Cloud); a clean-up before `MERGED` can close an
+   unmerged PR or make the builder unresumable.
 6. **Destructive commands only in a tree you created and nobody else uses.** In a shared tree (main
    checkout, CI tree, production checkout) never `checkout -- <path>`,
    `restore`, `reset --hard`, `clean -f[dx]`, `stash`, or `switch`. Anywhere: never bare
@@ -516,27 +508,27 @@ For GitHub and `gh`; translate for another host. The coordinator lands PRs only 
    writer (section 1) runs `git worktree add --lock --reason "writer #<n>" <scratch>/work/wt-<n>
    -b ticket-<n> origin/main` itself. Before re-dispatching a builder for a branch that has a
    tree, remove that tree and its local branch (keep the remote one): `worktree unlock`, then
-   `worktree remove` (never `--force`); if it refuses, inspect the tree (section 11) first. Builder trees (found by
-   branch in `git worktree list`):
-   remove only after `MERGED` or `CLOSED`: `worktree unlock`, `worktree remove`,
-   `branch -D`, delete the remote branch, remove `<scratch>/builder-<n>/`.
-   Review trees: `git worktree add --detach <scratch>/work/rev-<p>[-<k>] <sha>`; the coordinator
-   removes each with `worktree remove` after its verdict.
-   Weekly, as a script (`hygiene.sh`, from A8 with nothing in flight): `gh pr list --head <b>
-   --state all` per `ticket-*` branch, remove merged or closed ones as above (never `--force`);
-   remove `rev-*` trees whose PR is merged or closed; list `agent-*` trees (a builder that died
-   before renaming, or a worktree another agent made) for removal when no agent runs;
-   `git worktree prune`; list every worktree
-   outside `<scratch>/work/`; read-only `git fsck`; `git maintenance run`. Never
-   `git branch --merged`. Why: squash-merged commits are not ancestors of `main`.
+   `worktree remove` (never `--force`); if it refuses, inspect the tree (section 11) first. A
+   ticket's tree, branches and builder scratch go only after `MERGED` or `CLOSED`: `land.sh` does
+   it on merge. Review trees: `git worktree add --detach <scratch>/work/rev-<p>[-<k>] <sha>`; the
+   coordinator removes each with `worktree remove` after its verdict.
+   Weekly, from A8 with nothing in flight: the plugin's `hygiene.sh` removes what is left of
+   merged or closed tickets and reviews, lists `agent-*` trees (a builder that died before
+   renaming, or a tree another agent made) and trees outside `<scratch>/work/`, prunes, runs a read-only `git fsck` and
+   `git maintenance`. It finds merged branches by PR, never by `git branch --merged`. Why:
+   squash-merged commits are not ancestors of `main`.
 9. **No stacked PRs by default:** a ticket depending on an unmerged PR waits. If you must stack,
    base the child on the parent branch; after the parent squash-merges, the fixer runs
    `git rebase --onto origin/main <parent old head> <child>`, force-pushes with lease and retargets
    the PR to `main` (keywords do not fire before that).
-10. **`land.sh <pr> <reviewed sha>`**, stopping at the first failed check: mergeable check and
-    merged-tree check (item 5), pinned squash with the trailer body (items 4, 5), assert `MERGED`,
-    check the closed issues (item 2), clean up (item 8), fast-forward the deploy checkout, start
-    batch CI.
+10. **`land.sh <pr> <reviewed full sha> <body file>`** (`docs/playbook/plugin/scripts/`), run from
+    the main checkout, stops at the first failed step: a same-repo PR into `main`, reviewed head,
+    mergeable; when `main` moved past the branch's base, `PLAYBOOK_BUILDER_CHECK` on the merged
+    tree (item 5, Git 2.38+); pinned squash with the title and the body file (items 4, 5);
+    `MERGED`; clean-up of a `ticket-*` branch (item 8); `env.PLAYBOOK_AFTER_LAND` from
+    `.claude/settings.json` with the merge sha as `$1` (e.g. fast-forward the deploy checkout, P4;
+    batch CI stays once per batch, section 7); the closed issues (item 2). The body file holds the
+    summary, the closing keywords and the session's attribution block.
 
 ---
 
@@ -653,7 +645,8 @@ one at a time as `ready-for-human` issues (P15).
       `env.PLAYBOOK_BUILDER_CHECK` (P6); `.claude/settings.local.json`:
       `env.PLAYBOOK_SCRATCH` (P6).
       No copies of the agent definitions in `.claude/agents/`.
-- [ ] `land.sh`, `ship.sh`, the deploy log, A9 with its verdict logic tested on canned parts.
+- [ ] `env.PLAYBOOK_AFTER_LAND` in `.claude/settings.json` if needed (section 8, item 10), `ship.sh`, the deploy log, A9 with its
+      verdict logic tested on canned parts.
 - [ ] `GLOSSARY.md`: 10-20 terms with "avoid" lists, via `domain-modeling` and `grilling` (or the
       owner's `/mattpocock-skills:grill-with-docs`).
 - [ ] `CLAUDE.md` from A10, every P answered, written with `writing-for-agents`; the `grilling`
@@ -665,7 +658,6 @@ one at a time as `ready-for-human` issues (P15).
       (P6); guard tests for the single-owner rules, always collected.
 - [ ] Risk-class table (P7), deploy window (P4), usage check (P10), monitor filters (section 7).
 - [ ] Owner agreement (P1, P5, P15) answered in `CLAUDE.md`. Hand-off file convention (section 9).
-- [ ] `hygiene.sh` (section 8, item 8).
 
 ---
 
