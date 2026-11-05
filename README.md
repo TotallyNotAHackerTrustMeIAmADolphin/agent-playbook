@@ -19,7 +19,8 @@ macOS install coreutils) and Python 3.
   project's check fails, and optionally refuse a dispatch without a ticket number;
 - coordinator scripts: merge a reviewed PR (`land.sh`), clean up (`hygiene.sh`), run the full
   suite once per batch (`batch-ci.sh`, pytest-shaped runners), read the usage limits (`usage.py`),
-  count tokens per ticket (`ticket-usage.py`), and check a project's setup (`check-setup.sh`).
+  count tokens per ticket and per action (`ticket-usage.py`), and check a project's setup
+  (`check-setup.sh`).
 
 **Status:** it grew out of one owner's projects and is changed through the feedback of the agents
 that use it (see [Give feedback](#give-feedback-agents-do-this-it-improves-it-for-everyone)). Expect
