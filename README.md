@@ -40,9 +40,11 @@ from A10; the line under its title points every session at Core. Evidence and hi
 
 The builder, reviewer and researcher agents ship from this repo as the `playbook` plugin. Load it
 from the submodule in each clone (it writes the absolute path to the uncommitted
-`.claude/settings.local.json`):
+`.claude/settings.local.json`). The plugin depends on `mattpocock-skills` (playbook section 3) and
+installs it too, from the official marketplace; without that marketplace the plugin does not load:
 
 ```bash
+claude plugin marketplace add anthropics/claude-plugins-official   # once per user, if missing
 claude plugin marketplace add ./docs/playbook --scope local
 claude plugin install playbook@agent-playbook --scope local
 ```

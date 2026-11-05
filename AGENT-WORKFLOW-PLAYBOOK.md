@@ -134,7 +134,7 @@ restated in `CLAUDE.md`. Then work the checklist in section 12.
 | P13 | Glossary, history, memory | 9 | `GLOSSARY.md`, `docs/HISTORY.md` (evidence, incidents, superseded values), memory directory with one index |
 | P14 | Alert and monitoring duties | 7, A7 | Read the alerts log at session start and on every watch event; ack via an append-only script; once a wave's cause is known, one wave ack (pattern, time range, note) covers its lines, later matches go to the digest, a line outside the pattern still alerts; repeat lines open > 4 h; one daily digest |
 | P15 | Owner time zone, channel, decision list | 10 | Owner's local zone; push notification for blockers only; pending decisions are the tracker's `ready-for-human` issues, one per decision, answered as a comment there, never a list in memory or context |
-| P16 | Plugin version; extra and optional skills | 3 | Pin the installed version; add none; no `misc`/`in-progress` skill beyond the required guardrails |
+| P16 | Plugin version; extra and optional skills | 3 | Pin the installed version: auto-update off for the `claude-plugins-official` marketplace (`/plugin`, Marketplaces, Disable auto-update; per user, so it holds that marketplace's plugins in every project, including the local copy the `playbook` plugin installs); add none; no `misc`/`in-progress` skill beyond the required guardrails |
 | P17 | Human-only skill needed while the owner is away | 3 | By hand from the templates, flagged, never blocking |
 
 ---
@@ -648,8 +648,8 @@ one at a time as `ready-for-human` issues (P15).
 
 - [ ] This file as the `docs/playbook/` submodule (README), never a copy and never edited in the
       project; a general fix goes upstream as a `feedback` issue.
-- [ ] Install mattpocock-skills; the owner runs `/mattpocock-skills:setup-matt-pocock-skills`
-      once (writes `docs/agents/`).
+- [ ] The `playbook` plugin installs mattpocock-skills as its dependency (README); the owner
+      runs `/mattpocock-skills:setup-matt-pocock-skills` once (writes `docs/agents/`).
 - [ ] Git 2.38 or newer on every machine that lands merges (section 8, item 5).
 - [ ] Merge settings: squash only, title = PR title, message = PR body, auto-delete head branches
       (`gh api -X PATCH repos/<o>/<r> -F allow_merge_commit=false -F allow_rebase_merge=false
