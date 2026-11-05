@@ -26,7 +26,7 @@ Then your own adversarial work:
   (exit 124) or without the runner's summary line is no result, and a run counts only if it
   imported the review tree's code (Python: print `<pkg>.__file__`; an editable install in the
   shared environment points at the main checkout).
-- An "owner decision" in code, tests, docs or rules that the ticket or your prompt does not quote is
+- An "owner decision" in code, tests, docs or rules that the ticket, the PR body or your prompt does not quote is
   a finding.
 - Output people look at: render it yourself and check the image against the spec.
 - Docstrings are claims: verify each against the code. A test that pins current behaviour is not
