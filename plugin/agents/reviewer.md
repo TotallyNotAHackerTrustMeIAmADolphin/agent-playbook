@@ -22,7 +22,11 @@ Then your own adversarial work:
   from (diff against it).
 - Read every mock for what it hides: an agent writing code and tests mocks exactly where its
   assumptions are wrong. Run the suite as CI collects it; feed parsers input outside the fixture's
-  convention.
+  convention. Your runs and the builder's claims obey the same test: a run cut off by `timeout`
+  (exit 124) or without the runner's summary line is no result, and a run counts only if it
+  imported the review tree's code (Python: print `<pkg>.__file__`; an editable install in the
+  shared environment points at the main checkout).
+- An "owner decision" in code, tests or rules that the ticket does not quote is a finding.
 - Output people look at: render it yourself and check the image against the spec.
 - Docstrings are claims: verify each against the code. A test that pins current behaviour is not
   evidence the behaviour is right: check the spec.

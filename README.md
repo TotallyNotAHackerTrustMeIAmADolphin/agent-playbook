@@ -43,6 +43,10 @@ from the submodule in each clone (it writes the absolute path to the uncommitted
 `.claude/settings.local.json`). The plugin depends on `mattpocock-skills` (playbook section 3) and
 installs it too, from the official marketplace; without that marketplace the plugin does not load:
 
+Install while no agent runs (its hand-back hook acts on agents already in flight), and from the
+submodule, not from GitHub: a GitHub source follows the playbook's `main`, not the commit the
+project pins.
+
 ```bash
 claude plugin marketplace add anthropics/claude-plugins-official   # once per user, if missing
 claude plugin marketplace add ./docs/playbook --scope local
@@ -73,8 +77,9 @@ an absolute path that differs per machine, into `.claude/settings.local.json`:
 { "env": { "PLAYBOOK_SCRATCH": "<absolute scratch dir outside the repo>" } }
 ```
 
-Keep the scratch directory out of cloud-synced folders (OneDrive, Dropbox, Nextcloud): every agent
-worktree lands there, and the sync client re-reads each one.
+Keep the scratch directory and the repository out of cloud-synced folders (OneDrive, Dropbox,
+Nextcloud): every agent worktree lands in scratch and the sync client re-reads each one, and an
+online-only placeholder in `.git` makes `git worktree add` fail.
 
 The plugin also ships `land.sh` and `hygiene.sh` (playbook section 8) and `batch-ci.sh`
 (A9) for the coordinator and `usage.py`, which reads the subscription's 5-hour and weekly limits (section 7); its
