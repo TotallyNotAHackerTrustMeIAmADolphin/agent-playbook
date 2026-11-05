@@ -121,7 +121,10 @@ def shell_command(command):
         if words and words[0].startswith("$") and ("=" in words[0] or words[1:2] == ["="]):
             continue  # PowerShell: $x = ...
         if words and words[0].split("(")[0] not in SKIP and "()" not in words[0]:
-            return os.path.basename(words[0].strip("\"')").replace("\\", "/")) or "?"
+            word = words[0].strip("\"')")
+            if not word.replace("\\", "/").split("/")[-1].strip() or (" " in word and "/" not in word.replace("\\", "/")):
+                return "string"  # PowerShell: a bare "..." expression
+            return os.path.basename(word.replace("\\", "/")).split()[0] or "?"
     return "?"
 
 
