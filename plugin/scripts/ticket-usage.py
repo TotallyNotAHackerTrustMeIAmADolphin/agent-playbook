@@ -16,7 +16,16 @@ Limits: only this machine, only transcripts Claude Code has not cleaned up yet
 `#0` for work without a ticket, are counted and reported as unattributed). In single-writer mode the session's own work is not a sub-agent and is
 not counted.
 
+--by-action: where the tokens go. Every turn re-reads the whole context, so a tool result costs
+its size again on every later API call of that agent until a compaction drops it. Per action
+(tool name; shell tools by the command's first word; Agent by type) the script prints calls,
+errors, result tokens and carried tokens (result tokens x the later API calls that re-read them),
+then the single results that were carried most. It reads the sub-agents and the sessions' own
+transcripts (with --ticket, only that ticket's sub-agents). Result tokens are estimated from
+characters / 4 (an image counts 1600): compare actions, do not add them up as cost.
+
 Usage: python3 ticket-usage.py [--project <repo dir>] [--ticket <n>] [--factor 3]
+       python3 ticket-usage.py --by-action [--project <repo dir>] [--ticket <n>] [--top 15]
 """
 import argparse
 import glob
@@ -27,6 +36,10 @@ import statistics
 import sys
 
 TICKET = re.compile(r"\s*#(\d+)\b")
+SHELL = ("Bash", "PowerShell")
+ASSIGN = re.compile(r"[A-Za-z_][A-Za-z0-9_]*=")
+SEGMENT = re.compile(r"&&|\|\||[;|\n]")
+IMAGE_TOKENS = 1600
 
 
 def project_dir(repo):
@@ -57,8 +70,9 @@ def agent_tokens(path):
     return total
 
 
-def collect(pdir):
-    rows = []  # (ticket or None, role, tokens)
+def subagents(pdir):
+    """(ticket or None, role, transcript path) per sub-agent dispatch."""
+    rows = []
     pattern = os.path.join(glob.escape(pdir), "*", "subagents", "*.meta.json")
     for meta_path in glob.glob(pattern):
         try:
@@ -72,8 +86,118 @@ def collect(pdir):
         hit = TICKET.match(meta.get("description") or "")
         ticket = int(hit.group(1)) if hit else None
         ticket = ticket or None  # '#0' marks work without a ticket: unattributed
-        rows.append((ticket, meta.get("agentType") or "?", agent_tokens(transcript)))
+        rows.append((ticket, meta.get("agentType") or "?", transcript))
     return rows
+
+
+def collect(pdir):
+    return [(t, role, agent_tokens(p)) for t, role, p in subagents(pdir)]
+
+
+def shell_command(command):
+    """First command word that is not a cd, an export or a variable assignment."""
+    for part in SEGMENT.split(command):
+        words = part.split()
+        while words and (ASSIGN.match(words[0]) or words[0] in ("export", "env")):
+            words = words[1:]
+        if words and words[0].startswith("$") and ("=" in words[0] or words[1:2] == ["="]):
+            continue  # PowerShell: $x = ...
+        if words and words[0] not in ("cd", "Set-Location", "pushd"):
+            return os.path.basename(words[0].strip("\"'"))
+    return "?"
+
+
+def action_label(name, inp):
+    if name in SHELL:
+        return f"{name}:{shell_command(str(inp.get('command') or ''))}"
+    if name == "Agent":
+        return f"Agent:{inp.get('subagent_type') or 'general-purpose'}"
+    return name
+
+
+def action_detail(name, inp):
+    if name in SHELL:
+        return " ".join(str(inp.get("command") or "").split())[:80]
+    for key in ("file_path", "pattern", "url", "description", "query", "to"):
+        if inp.get(key):
+            return " ".join(str(inp[key]).split())[:80]
+    return ""
+
+
+def result_tokens(content):
+    if isinstance(content, str):
+        return len(content) // 4
+    n = 0
+    for b in content if isinstance(content, list) else []:
+        if isinstance(b, dict) and b.get("type") == "text":
+            n += len(b.get("text") or "") // 4
+        elif isinstance(b, dict) and b.get("type") == "image":
+            n += IMAGE_TOKENS
+    return n
+
+
+def action_rows(path):
+    """(action, detail, is_error, result tokens, carried tokens) per tool result."""
+    calls, seen, done, live = {}, set(), [], []  # live: [action, detail, error, tokens, re-reads]
+    with open(path, encoding="utf-8") as f:
+        for line in f:
+            try:
+                d = json.loads(line)
+            except ValueError:
+                continue
+            kind, m = d.get("type"), d.get("message") or {}
+            if kind == "system" and d.get("subtype") == "compact_boundary":
+                done, live = done + live, []  # the summary replaces them
+            elif kind == "assistant":
+                key = m.get("id") or d.get("uuid")
+                if m.get("usage") and key not in seen:  # one API call, streamed over several lines
+                    seen.add(key)
+                    for r in live:
+                        r[4] += 1
+                for b in m.get("content") or []:
+                    if isinstance(b, dict) and b.get("type") == "tool_use":
+                        inp = b.get("input") if isinstance(b.get("input"), dict) else {}
+                        name = b.get("name") or "?"
+                        calls[b.get("id")] = (action_label(name, inp), action_detail(name, inp))
+            elif kind == "user" and isinstance(m.get("content"), list):
+                for b in m["content"]:
+                    if isinstance(b, dict) and b.get("type") == "tool_result":
+                        action, det = calls.get(b.get("tool_use_id"), ("?", ""))
+                        live.append([action, det, bool(b.get("is_error")),
+                                     result_tokens(b.get("content")), 0])
+    return [(a, det, e, t, t * n) for a, det, e, t, n in done + live], len(seen)
+
+
+def by_action(pdir, ticket, top):
+    if ticket is None:
+        paths = glob.glob(os.path.join(glob.escape(pdir), "*.jsonl"))
+        paths += [p for _, _, p in subagents(pdir)]
+    else:
+        paths = [p for t, _, p in subagents(pdir) if t == ticket]
+    if not paths:
+        print("no transcripts" + (f" for #{ticket}" if ticket else ""), file=sys.stderr)
+        return 1
+    agg, single, processed, api_calls = {}, [], 0, 0
+    for path in paths:
+        processed += agent_tokens(path)
+        rows, n = action_rows(path)
+        api_calls += n
+        for action, det, err, tokens, carried in rows:
+            a = agg.setdefault(action, [0, 0, 0, 0])
+            a[0], a[1], a[2], a[3] = a[0] + 1, a[1] + err, a[2] + tokens, a[3] + carried
+            single.append((carried, tokens, action, det))
+    total = sum(a[3] for a in agg.values()) or 1
+    print(f"{len(paths)} transcripts, {api_calls} API calls, {processed} tokens processed"
+          f" ({processed // max(api_calls, 1)} per call): about {total} are carried tool results"
+          f" (characters / 4), the rest instructions, messages and the agents' own text,"
+          f" re-read on every call")
+    print("action\tcalls\terrors\tresult_tokens\tcarried_tokens\tshare")
+    for action, a in sorted(agg.items(), key=lambda kv: -kv[1][3]):
+        print(f"{action}\t{a[0]}\t{a[1]}\t{a[2]}\t{a[3]}\t{100 * a[3] / total:.0f}%")
+    print(f"\ncarried most (top {top}):\ncarried_tokens\tresult_tokens\taction\tdetail")
+    for carried, tokens, action, det in sorted(single, reverse=True)[:top]:
+        print(f"{carried}\t{tokens}\t{action}\t{det}")
+    return 0
 
 
 def main(argv):
@@ -81,12 +205,16 @@ def main(argv):
     ap.add_argument("--project", default=".", help="repo dir the coordinator runs in (default: .)")
     ap.add_argument("--ticket", type=int, help="print only this ticket")
     ap.add_argument("--factor", type=float, default=3.0, help="flag above factor x median")
+    ap.add_argument("--by-action", action="store_true", help="tokens per action, not per ticket")
+    ap.add_argument("--top", type=int, default=15, help="--by-action: largest results to list")
     a = ap.parse_args(argv)
 
     pdir = project_dir(a.project)
     if not os.path.isdir(pdir):
         print(f"no transcripts at {pdir}", file=sys.stderr)
         return 1
+    if a.by_action:
+        return by_action(pdir, a.ticket, a.top)
     per_ticket, skipped, skipped_tokens = {}, 0, 0
     for ticket, role, tokens in collect(pdir):
         if ticket is None:

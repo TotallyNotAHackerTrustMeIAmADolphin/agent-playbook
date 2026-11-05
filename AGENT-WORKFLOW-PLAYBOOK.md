@@ -583,6 +583,7 @@ plugin's `land.sh` (item 10). Why: items 2, 4, 5 and 8 are what a script makes r
 | Metric | Definition | Starting guess |
 |---|---|---|
 | Tokens per ticket | Python 3 (`python` on Windows): `python3 docs/playbook/plugin/scripts/ticket-usage.py`: tokens processed (a relative gauge, not cost) by every sub-agent whose description starts with `#<n>` (section 4), from the transcripts on this machine that Claude Code has not yet cleaned up; it reports what it could not attribute. Single writer: it counts only the review and research agents | Flag above 3 × median (the script marks it) |
+| Tokens per action | `ticket-usage.py --by-action [--ticket <n>]`: per tool (shell tools by command) the result tokens and how often later calls re-read them, plus the results re-read most; it includes the sessions' own transcripts. Before a sweep or after a HIGH ticket: the top rows name the rule to change (a whole-file read, a long log, a verbose command) | Track the top 3 actions' share |
 | Review rounds per PR | Reviews until CLEAN, per risk class | About 1 for docs/config, 2-3 for critical |
 | Escape rate | Defects found after merge that review did not name, per 10 merged PRs | Under 1; each escape gets a rule or guard test. Escapes after a skipped re-review (section 5) are counted separately; any one is a `feedback` issue to lower the 30-line threshold |
 | Lead time | `ready-for-agent` to merged, merged to deployed | Track median and worst |
