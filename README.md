@@ -16,7 +16,7 @@ from A10; the line under its title points every session at Core. Evidence and hi
 `docs/HISTORY.md`. There is no second project rule file (only module-scoped `.claude/rules/`, A10).
 
 The builder, reviewer and researcher agents ship from this repo as the `playbook` plugin. Load it
-from the submodule, once per clone (it writes the absolute path to the uncommitted
+from the submodule in each clone (it writes the absolute path to the uncommitted
 `.claude/settings.local.json`):
 
 ```bash
@@ -24,8 +24,15 @@ claude plugin marketplace add ./docs/playbook --scope local
 claude plugin install playbook@agent-playbook --scope local
 ```
 
-Claude Code reads the plugin from the submodule folder, so bumping the submodule also updates the
-agents (new sessions). The builder model and the hand-back check go into the committed `.claude/settings.json` (it
+Claude Code reads the plugin in place from the folder (not a cached copy), so bumping the
+submodule also updates the agents at the next session start; the plugin version does not matter.
+The marketplace registration is per user, though: on a machine with several projects, the one that
+ran `marketplace add` last serves the plugin to all of them (`claude plugin list` shows it under
+"Read from"). Re-run the two commands in the project you work in, or start sessions with
+`claude --plugin-dir docs/playbook/plugin`, which replaces the installed copy for that session.
+`check-setup.sh` names the clone that serves the plugin.
+
+The builder model and the hand-back check go into the committed `.claude/settings.json` (it
 applies to every sub-agent whose definition names no model, playbook P5); the scratch directory,
 an absolute path that differs per machine, into `.claude/settings.local.json`:
 

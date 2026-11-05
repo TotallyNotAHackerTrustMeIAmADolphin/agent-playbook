@@ -662,8 +662,7 @@ one at a time as `ready-for-human` issues (P15).
       secret scanning and push protection where available. Record each in the enforcement table.
 - [ ] Agent credential and identity; `CODEOWNERS` for the critical paths; dependency alerts on;
       CI actions pinned.
-- [ ] The `playbook` plugin, once per clone (README): `claude plugin marketplace add ./docs/playbook
-      --scope local` and `claude plugin install playbook@agent-playbook --scope local`. In
+- [ ] The `playbook` plugin in each clone (README, Use it in a project). In
       `.claude/settings.json`: `env.CLAUDE_CODE_SUBAGENT_MODEL` (P5) and
       `env.PLAYBOOK_BUILDER_CHECK` (P6); `.claude/settings.local.json`:
       `env.PLAYBOOK_SCRATCH` (P6).

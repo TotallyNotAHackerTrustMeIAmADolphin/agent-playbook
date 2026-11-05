@@ -97,6 +97,23 @@ enabled() {   # the value in settings.local.json wins over settings.json
 }
 enabled && ok "plugin playbook@agent-playbook enabled" ||
   fail "plugin not enabled for this clone (README: claude plugin install playbook@agent-playbook --scope local)"
+# The marketplace registration is per user: another project's clone may serve the plugin (README).
+# INFO only: the remedy repoints the other project, and a --plugin-dir session is invisible here.
+lc() { tr '\\' / | tr 'A-Z' 'a-z'; }
+if command -v claude >/dev/null; then
+  # parses the "Read from:" line of the human-readable list (the --json field is readFromFolder)
+  rf=$(${TO:+"$TO" 60} claude plugin list 2>/dev/null | awk '{ sub(/\r$/, "") }
+         /playbook@agent-playbook/ {f=1; next} f && /^[ \t]*$/ {exit}
+         f && /Read from:/ {sub(/.*Read from:[ \t]*/, ""); print; exit}' | lc)
+  here=$( { pwd -W 2>/dev/null || pwd -P; } | lc)/$PB/plugin
+  if [ -z "$rf" ]; then info "claude plugin list names no folder for playbook@agent-playbook"
+  elif [ "${rf%/}" = "$here" ]; then ok "the plugin is read from this clone's $PB"
+  else info "the installed plugin is read from $rf, another clone; sessions here get its agents
+        unless started with --plugin-dir $PB/plugin (README, Use it in a project)"
+  fi
+else
+  info "claude not on PATH; which clone serves the plugin is not checked"
+fi
 for k in CLAUDE_CODE_SUBAGENT_MODEL PLAYBOOK_BUILDER_CHECK; do
   grep -q "\"$k\" *: *\"[^\"]" .claude/settings.json 2>/dev/null && ok "$k in .claude/settings.json" ||
     fail "$k missing or empty in .claude/settings.json (README; P5, P6)"
