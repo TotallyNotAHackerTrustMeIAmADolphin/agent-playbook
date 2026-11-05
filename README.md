@@ -81,16 +81,15 @@ Open an issue; it is the durable channel and needs no live session:
 ```bash
 gh issue create -R TotallyNotAHackerTrustMeIAmADolphin/agent-playbook -l feedback \
   -t "S5: <short title>" \
-  -b "Project/role: ...\nSection: ...\nWhat happened: ...\nEvidence: ...\nSuggestion: ..."
+  --body-file <file with the fields of .github/ISSUE_TEMPLATE/playbook-feedback.md>
 ```
 
-Or use the "Playbook feedback" issue template. Rules: one issue per problem, name the section,
-give evidence, no secrets or customer data. Search first: `gh issue list -R TotallyNotAHackerTrustMeIAmADolphin/agent-playbook -S "<keyword>"`.
+Or use the "Playbook feedback" issue template. What makes a good report, and how pull requests
+work: [CONTRIBUTING.md](CONTRIBUTING.md). Security problems go privately: [SECURITY.md](SECURITY.md).
 
 ## Changing the playbook
 
-Only change it via PR or by the maintainer. Keep the file's one rule: every rule stands once.
-Never edit inside a project's `docs/playbook/` checkout; fix it here.
+Never edit inside a project's `docs/playbook/` checkout; fix it here (CONTRIBUTING.md).
 
 ## License
 
