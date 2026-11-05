@@ -399,9 +399,31 @@ instruction (P8). A rule that fails once in prose moves into tooling (header rul
   writes outside worktree and scratch; deny rules for production paths and state-changing commands
   in `permissions.deny` of the settings, never a blanket allow of the shell (a `disallowedTools`
   entry with a pattern such as `Bash(git push *)` removes the whole tool); the
-  `git-guardrails-claude-code` hook; a pre-commit secret scanner; a sandbox and an egress
-  allowlist. The enforcement table lists what is installed. Why: a secret caught at review is
-  already on the server; if one lands, rotate it first.
+  `git-guardrails-claude-code` hook; a pre-commit secret scanner. The enforcement table lists
+  what is installed. Why: a secret caught at review is already on the server; if one lands,
+  rotate it first.
+- **Agents run in the Bash sandbox by default.** Claude Code's Bash sandbox (not the mutation-test
+  sandbox of section 5) confines Bash and its child processes at OS level (macOS, Linux, WSL2; not
+  native Windows); sub-agents inherit it. In `.claude/settings.json`: `sandbox.enabled: true`,
+  `sandbox.allowUnsandboxedCommands: false` (else a failed command may be retried outside it,
+  without a prompt under `bypassPermissions`), `sandbox.network.allowedDomains` with only the
+  hosts the work needs (the git host over HTTPS, the package index; a broad domain, the git host
+  included, is an exfiltration path: list it knowingly). `sandbox.filesystem.allowWrite: ["<scratch>"]` goes in
+  `.claude/settings.local.json`, since `<scratch>` is per machine (P6). A host outside the list
+  still gets a prompt, or passes under `bypassPermissions`: set
+  `sandbox.network.strictAllowlist: true` in user or managed settings (a project file cannot) on
+  every machine that runs agents unattended. Set `sandbox.failIfUnavailable: true` in
+  `.claude/settings.json` only once every machine that runs the project's sessions supports the
+  sandbox; it stops sessions on native Windows. A `sandbox.excludedCommands` entry runs with full access and
+  its credentials (e.g. `gh *` where TLS fails on macOS, or the usage check of section 7 if it
+  cannot read the limits inside): list each in the enforcement table. Enabling it also
+  auto-allows sandboxed Bash (`autoAllowBashIfSandboxed`); the deny rules above stay. Prove it
+  once per machine: `curl --noproxy '*' https://example.com` must fail with "Could not resolve
+  host" and `touch ~/sandbox-probe` must fail (unless home is the working directory; delete the probe); decline any offer to retry outside. Where no
+  sandbox runs, the enforcement table says "sandbox: none (<platform>)" and the deny rules carry
+  the weight. Hooks run outside it. Why: an injected instruction (above) reaches only what the
+  sandbox lets through; Copilot firewalls by default, Codex and Cursor confine the environment and
+  OpenHands recommends Docker (`docs/research/orchestrators-2026-11.md`, proposal 10).
 
 ### Dependencies and supply chain
 
@@ -634,8 +656,9 @@ one at a time as `ready-for-human` issues (P15).
       -F delete_branch_on_merge=true -f squash_merge_commit_title=PR_TITLE
       -f squash_merge_commit_message=PR_BODY`).
 - [ ] Protect `main` or install the compensation (section 8, item 0).
-- [ ] Guards (section 6): write-deny hook, `git-guardrails-claude-code`, `permissions.deny`,
-      sandbox, egress allowlist, pre-commit secret scanner, file-size limit, linter; server-side
+- [ ] Guards (section 6): Bash sandbox with egress allowlist, write-deny hook,
+      `git-guardrails-claude-code`, `permissions.deny`, pre-commit secret scanner, file-size
+      limit, linter; server-side
       secret scanning and push protection where available. Record each in the enforcement table.
 - [ ] Agent credential and identity; `CODEOWNERS` for the critical paths; dependency alerts on;
       CI actions pinned.
