@@ -7,7 +7,7 @@ answers/values in a slim `PROJECT-<NAME>-PLAYBOOK.md`.
 ## Use it in a project
 
 ```bash
-git submodule add https://github.com/<owner>/agent-playbook.git docs/playbook
+git submodule add https://github.com/TotallyNotAHackerTrustMeIAmADolphin/agent-playbook.git docs/playbook
 git commit -m "Add agent playbook submodule"
 ```
 
@@ -33,13 +33,13 @@ Read the playbook's commit log before bumping and re-check your project file aga
 Open an issue; it is the durable channel and needs no live session:
 
 ```bash
-gh issue create -R <owner>/agent-playbook -l feedback \
+gh issue create -R TotallyNotAHackerTrustMeIAmADolphin/agent-playbook -l feedback \
   -t "S5: <short title>" \
   -b "Project/role: ...\nSection: ...\nWhat happened: ...\nEvidence: ...\nSuggestion: ..."
 ```
 
 Or use the "Playbook feedback" issue template. Rules: one issue per problem, name the section,
-give evidence, no secrets or customer data. Search first: `gh issue list -R <owner>/agent-playbook -S "<keyword>"`.
+give evidence, no secrets or customer data. Search first: `gh issue list -R TotallyNotAHackerTrustMeIAmADolphin/agent-playbook -S "<keyword>"`.
 
 ## Changing the playbook
 
