@@ -2,7 +2,8 @@
 # check-setup.sh   (playbook section 12; run from the project's root, and weekly from A8)
 # Checks a project's playbook setup against section 0, A10 and the README: one rule file (no
 # playbook copies or forks, a clean submodule from the canonical repo), CLAUDE.md within A10's
-# budget, module rules scoped by paths:, no copied agent definitions, the plugin and its settings.
+# budget, the setup skill's docs/agents/, module rules scoped by paths:, no copied agent
+# definitions, the plugin and its settings.
 # Changes nothing except one `git fetch` of the canonical main into the submodule's FETCH_HEAD.
 # Prints one line per check; exits 1 if any check FAILs. INFO lines never fail.
 set -uo pipefail
@@ -61,6 +62,13 @@ if [ -f CLAUDE.md ]; then
 else
   fail "no CLAUDE.md (A10)"
 fi
+
+# The owner's one-time setup skill (section 12): docs/agents/ and the CLAUDE.md block it writes
+miss=""
+for f in docs/agents/issue-tracker.md docs/agents/domain.md; do [ -f "$f" ] || miss="$miss $f"; done
+grep -q '^## Agent skills' CLAUDE.md 2>/dev/null || miss="$miss CLAUDE.md:'## Agent skills'"
+[ -z "$miss" ] && ok "setup-matt-pocock-skills has run (docs/agents/)" ||
+  fail "missing:$miss; the owner runs /mattpocock-skills:setup-matt-pocock-skills once (section 12; human-only)"
 
 # Module rules: every .claude/rules file has a non-empty paths: list in its frontmatter (A10)
 if [ -d .claude/rules ]; then
