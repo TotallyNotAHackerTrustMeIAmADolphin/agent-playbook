@@ -1,8 +1,8 @@
 ﻿# agent-playbook
 
 Central, project-agnostic **Agent Workflow Playbook** (`AGENT-WORKFLOW-PLAYBOOK.md`).
-Projects include it as a git submodule instead of keeping copies, and keep only their own
-answers/values in a slim `PROJECT-<NAME>-PLAYBOOK.md`.
+Projects include it as a git submodule instead of keeping copies. A project's own rules (its
+answers to P1-P17) live in one place only: its `CLAUDE.md`, shaped by the playbook's A10.
 
 ## Use it in a project
 
@@ -11,23 +11,26 @@ git submodule add https://github.com/TotallyNotAHackerTrustMeIAmADolphin/agent-p
 git commit -m "Add agent playbook submodule"
 ```
 
-Fixed path: `docs/playbook/` (the playbook's own commands assume it). The project file lives
-**next to** the submodule, not inside it: `docs/PROJECT-<NAME>-PLAYBOOK.md`.
-Add to the project's `CLAUDE.md`: read `docs/playbook/AGENT-WORKFLOW-PLAYBOOK.md` (Core) at session start.
+Fixed path: `docs/playbook/` (the playbook's own commands assume it). Then write `CLAUDE.md`
+from A10; the line under its title points every session at Core. Evidence and history go to
+`docs/HISTORY.md`. There is no second project rule file.
 
 Fresh clone of a project: `git clone --recurse-submodules <url>` (or `git submodule update --init`).
 
-## Migrating from a copy
+## Migrating from a copy or a project playbook file
 
-Projects that still keep a copy of `AGENT-WORKFLOW-PLAYBOOK.md` (in the root, or in a plain
-`docs/playbook/` folder):
+Projects that keep a copy of `AGENT-WORKFLOW-PLAYBOOK.md`, or a `PROJECT-<NAME>-PLAYBOOK.md`:
 
-1. Diff the copy against this repo. Every local edit is either a project value (move it into the
-   project file) or a general fix (open a `feedback` issue here). The copy itself stays unedited.
-2. Move the project file to `docs/PROJECT-<NAME>-PLAYBOOK.md` and fix its links to `playbook/AGENT-WORKFLOW-PLAYBOOK.md`.
-3. `git rm -r` the copy (and the old folder), then add the submodule as above.
-4. Point `CLAUDE.md` and any awk command at `docs/playbook/AGENT-WORKFLOW-PLAYBOOK.md`.
-5. Re-check the project file against the playbook's commit log since the copy's date.
+1. Diff the copy against this repo. Every local edit is either a project value (step 2) or a
+   general fix (open a `feedback` issue here).
+2. Rewrite `CLAUDE.md` from A10: one line per P answer (P7 and P8 are tables), merged with what `CLAUDE.md` and the
+   project file said. Where they disagree, decide once and keep only that line.
+3. Move evidence, incidents and history from the project file into `docs/HISTORY.md`; delete the
+   project file and any other file restating rules (orchestration notes, prompt collections). Tool
+   configuration stays: `.claude/agents/`, `docs/agents/`, scripts.
+4. `git rm -r` the copy, add the submodule as above, point any awk command at
+   `docs/playbook/AGENT-WORKFLOW-PLAYBOOK.md`.
+5. Re-check `CLAUDE.md` against the playbook's commit log since the copy's date.
 
 ## Get updates (only when you want them)
 
@@ -38,7 +41,7 @@ git add docs/playbook && git commit -m "Bump playbook"
 ```
 
 The project pins an exact commit, so nothing changes under you until you bump it.
-Read the playbook's commit log before bumping and re-check your project file against changes.
+Read the playbook's commit log before bumping and re-check `CLAUDE.md` against changes.
 
 ## Give feedback (agents: do this, it improves it for everyone)
 

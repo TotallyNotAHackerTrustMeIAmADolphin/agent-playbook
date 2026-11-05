@@ -1,10 +1,10 @@
 # Agent Workflow Playbook
 
-> **The general, project-agnostic playbook.** Each project writes a slim
-> `docs/PROJECT-<NAME>-PLAYBOOK.md` (next to the `docs/playbook/` submodule that holds this file): its answers to P1-P17 (section 0), its values,
-> project-only rules and incident evidence. It cites this file by section and copies nothing.
-> This file wins on general rules, the fork on project values, except where the fork's header names an exception. Numbers here are starting values
-> from one reference project; recalibrate them and record the source in the fork.
+> **The general, project-agnostic playbook,** included in each project as the `docs/playbook/`
+> submodule. A project's own rules are its answers to P1-P17 (section 0), and they live in its
+> `CLAUDE.md` (A10), which names the tool files that hold executed values. Evidence and history go to `docs/HISTORY.md` (P13). This file wins
+> on general rules, `CLAUDE.md` on project values. Numbers here are starting values from one
+> reference project; a recalibrated value goes where section 0 says, its source into the history.
 
 **Read first:** [Core](#core-read-this-at-session-start) at every session start, printed with
 `awk '/^## Core: /{p=1} /^## 0\. /{if(p)e=1; exit} p; END{if(!e) print "CORE NOT FOUND"}' docs/playbook/AGENT-WORKFLOW-PLAYBOOK.md`;
@@ -18,7 +18,7 @@ replaces or removes one.
 
 <!-- toc -->
 - [Core: read this at session start](#core-read-this-at-session-start) (roles, loop, A7, A8)
-- [0. What your fork decides (P1-P17)](#0-what-your-fork-decides-p1-p17)
+- [0. What your project decides (P1-P17)](#0-what-your-project-decides-p1-p17)
 - [1. The coordinator's hard rule](#1-the-coordinators-hard-rule)
 - [2. Throughput and idling](#2-throughput-and-idling)
 - [3. The skills that drive each step](#3-the-skills-that-drive-each-step)
@@ -83,7 +83,7 @@ engineering work goes to a fresh sub-agent, one step per agent.
 [ ] Green batch CI and undeployed main? Arm ship.sh for the next window.
 [ ] After a deploy: first live cycle verified; deploy log written.
 [ ] Alerts log: list, act, ack with note; lines open > 4 h go to the owner.
-[ ] First message of the day: digest in one paragraph; pending decisions list.
+[ ] First message of the day: digest in one paragraph; open `ready-for-human` issues (P15).
 [ ] Owner needed? Escalation test (section 10); if real: one question + push notification.
 ```
 
@@ -103,32 +103,37 @@ engineering work goes to a fresh sub-agent, one step per agent.
 
 ---
 
-## 0. What your fork decides (P1-P17)
+## 0. What your project decides (P1-P17)
 
-**Starting a fork:** (1) one line per P below, in this order, as `> **Project rule Pn: <title>.** <answer>`
-("default" if unchanged); (2) project values and incident evidence under headings that name the
-section of this file they belong to; (3) never paste a general rule: if it is wrong, change it
-here; (4) work the checklist in section 12.
+Each answer is one line in the project's `CLAUDE.md`, under the A10 heading that names its P:
+`Pn: <answer>` or `Pn: default` (P7 and P8 are tables). A project rule that matches no P goes
+under the nearest A10 heading. A value a tool executes lives in that tool, and the `CLAUDE.md`
+line names the file instead of restating the value: the agent definitions' `model:` and
+`maxTurns:` (P5), the A9 script and its known-red file (P11), the setup skill's `docs/agents/`
+files (P3; the glossary layout of P13), the plugin installation (P16). A value shared by all projects may stand in the
+global `CLAUDE.md`, and the project line points there. Nowhere else: no second project file, no
+memory note. A general rule that is wrong for the project is fixed in this file (README,
+feedback), never restated in `CLAUDE.md`. Then work the checklist in section 12.
 
-| ID | Decide | § | Default | Record in |
-|---|---|---|---|---|
-| P1 | Human-only steps and owner approvals | Core, 10 | Logins and credentials only; everything else is code or a recorded default. Committing, pushing and merging are agent work behind the gates (review, tests, branch protection), never an owner step | `CLAUDE.md` → Ground rules |
-| P2 | What no agent may touch by hand | 6 | Production checkout, data, credentials, any state-changing CLI | `CLAUDE.md` → Ground rules (agents read it there) |
-| P3 | Issue tracker, CLI, labels | Core, 3 | GitHub Issues via `gh`; `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`; one roadmap issue | `docs/agents/issue-tracker.md`, `triage-labels.md` |
-| P4 | Deploy window, command, verification | 6 | After a production job finishes or off-peak; full sha from a clean main checkout; the service's health signal | `CLAUDE.md` → Ground rules; ops README |
-| P5 | Parallelism, builder model, turn cap | 2, 4 | 1 to about 5 builders on disjoint files; mid-tier model; `maxTurns: 150` | `CLAUDE.md` → How to dispatch; A1 frontmatter |
-| P6 | Test, lint, environment commands | 4, A1 | One shared environment; quiet flags; `<scratch>/work/` for worktrees, `<scratch>/<role>-<n>/` for each agent's temp files; one read-only `<scratch>/baseline/` | `CLAUDE.md` → How to dispatch |
-| P7 | Risk classes and top-class paths | 5 | The four-level table in section 5 | `CLAUDE.md` → risk-class table |
-| P8 | Enforcement table | 6 | Tooling for irreversible and single-owner rules and model/config choice; instruction for process rules | `CLAUDE.md` → Enforcement table |
-| P9 | Domain invariants, irreversible paths | 6 | None; if one exists: safe default behind a config flag, invariants only in code, one explicit owner approval to cross | `CLAUDE.md` → Domain rules; decisions doc |
-| P10 | Resource thresholds | 7 | Dispatch up to 95% of the 5-hour window; stop developing at 95% weekly; clean up above about 85% disk; agent work under `nice` | Memory note; `CLAUDE.md` → How to dispatch |
-| P11 | Full-suite command, known reds | 7 | A9 on one recycled tree with a known-red file | `CLAUDE.md`; script header |
-| P12 | Branch, PR, merge conventions | 8 | `ticket-<n>` branches, squash, `--body-file`, trailers copied from the session | `CLAUDE.md` → How to dispatch; A1 |
-| P13 | Rules, glossary, memory files | 9 | `CLAUDE.md`, `GLOSSARY.md`, `docs/HISTORY.md`, memory directory with one index | `CLAUDE.md` → Domain docs |
-| P14 | Alert and monitoring duties | 7, A7 | Read the alerts log at session start and on every watch event; ack via an append-only script; once a wave's cause is known, one wave ack (pattern, time range, note) covers its lines, later matches go to the digest, a line outside the pattern still alerts; repeat lines open > 4 h; one daily digest | `CLAUDE.md` → Session duties |
-| P15 | Owner time zone, channel, decision list | 10 | Owner's local zone; push notification for blockers only; the `decisions-pending` list is the tracker's `ready-for-human` issues, one per decision, answered as a comment there, never a list in memory or context | Tracker (`ready-for-human`); `CLAUDE.md` → Session duties |
-| P16 | Plugin version; extra and optional skills | 3 | Pin the installed version; add none; no `misc`/`in-progress` skill beyond the required guardrails | Fork; `CLAUDE.md` → Agent skills |
-| P17 | Human-only skill needed while the owner is away | 3 | By hand from the templates, flagged, never blocking | `CLAUDE.md` → Agent skills |
+| ID | Decide | § | Default |
+|---|---|---|---|
+| P1 | Human-only steps and owner approvals | Core, 10 | Logins and credentials only; everything else is code or a recorded default. Committing, pushing and merging are agent work behind the gates (review, tests, branch protection), never an owner step |
+| P2 | What no agent may touch by hand | 6 | Production checkout, data, credentials, any state-changing CLI |
+| P3 | Issue tracker, CLI, labels | Core, 3 | GitHub Issues via `gh`; `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`; one roadmap issue |
+| P4 | Deploy window, command, verification | 6 | After a production job finishes or off-peak; full sha from a clean main checkout; the service's health signal |
+| P5 | Parallelism, builder model, turn cap | 2, 4 | 1 to about 5 builders on disjoint files; mid-tier model; `maxTurns: 150` |
+| P6 | Test, lint, environment commands | 4, A1 | One shared environment; quiet flags; `<scratch>/work/` for worktrees, `<scratch>/<role>-<n>/` for each agent's temp files; one read-only `<scratch>/baseline/` |
+| P7 | Risk classes and top-class paths | 5 | The four-level table in section 5 |
+| P8 | Enforcement table | 6 | Tooling for irreversible and single-owner rules and model/config choice; instruction for process rules |
+| P9 | Domain invariants, irreversible paths | 6 | None; if one exists: safe default behind a config flag, invariants only in code, one explicit owner approval to cross |
+| P10 | Resource thresholds | 7 | Dispatch up to 95% of the 5-hour window; stop developing at 95% weekly; clean up above about 85% disk; agent work under `nice` |
+| P11 | Full-suite command, known reds | 7 | A9 on one recycled tree with a known-red file |
+| P12 | Branch, PR, merge conventions | 8 | `ticket-<n>` branches, squash, `--body-file`, trailers copied from the session |
+| P13 | Glossary, history, memory | 9 | `GLOSSARY.md`, `docs/HISTORY.md` (evidence, incidents, superseded values), memory directory with one index |
+| P14 | Alert and monitoring duties | 7, A7 | Read the alerts log at session start and on every watch event; ack via an append-only script; once a wave's cause is known, one wave ack (pattern, time range, note) covers its lines, later matches go to the digest, a line outside the pattern still alerts; repeat lines open > 4 h; one daily digest |
+| P15 | Owner time zone, channel, decision list | 10 | Owner's local zone; push notification for blockers only; pending decisions are the tracker's `ready-for-human` issues, one per decision, answered as a comment there, never a list in memory or context |
+| P16 | Plugin version; extra and optional skills | 3 | Pin the installed version; add none; no `misc`/`in-progress` skill beyond the required guardrails |
+| P17 | Human-only skill needed while the owner is away | 3 | By hand from the templates, flagged, never blocking |
 
 ---
 
@@ -152,20 +157,18 @@ coordinator cannot run for days.
   `Depends on`), an unknown external interface, a human-only step, or a real owner decision
   (section 10). A date in a ticket is caution, not a dependency. A ticket has one status: its
   label. A blocked ticket loses `ready-for-agent` and names its blocker, so the pick step skips it;
-  the coordinator gives the label back when the blocker closes. Why: "held" read loosely becomes hours of silent
-  idling.
+  the coordinator gives the label back when the blocker closes. Why: "held" read loosely becomes
+  hours of silent idling.
 - **Event-driven, not heartbeat.** Hand-backs wake the coordinator; timers only for wall-clock
   events (deploy window, usage reset, alert repeat). Why: each empty wakeup re-reads the whole
   context.
-- Throughput is bound by tokens and owner decisions, not pipeline latency: spend effort on work
-  per token and on clearing decisions, not on more parallelism.
 
 ---
 
 ## 3. The skills that drive each step
 
 Every recurring step runs on the **mattpocock-skills** plugin, a **fixed core of the workflow**:
-a fork pins its version (P16) and may add skills, but never drops one from the table or replaces
+a project pins its version (P16) and may add skills, but never drops one from the table or replaces
 the library. Each `SKILL.md` holds its procedure; this section says who starts which skill.
 
 **Two kinds of skill.** Frontmatter `disable-model-invocation: true` = **human-only**: no agent
@@ -188,8 +191,8 @@ starts it; the owner types `/mattpocock-skills:<name>`. All others are **agent-i
 
 **The table** was checked against mattpocock-skills **1.3.1** (November 2026; 1.3.0 removed
 `resolving-merge-conflicts` with no replacement). After any plugin
-update, verify names and flags against the installed frontmatter and correct the table here. The
-fork pins the version it runs (P16); when that differs from this one, verify the table first.
+update, verify names and flags against the installed frontmatter and correct the table here; a
+project pinned to another version (P16) verifies the table first.
 
 | Step | Skill (`mattpocock-skills:…`) | Invoked by | Who acts | Where |
 |---|---|---|---|---|
@@ -219,7 +222,7 @@ fork pins the version it runs (P16); when that differs from this one, verify the
 | Retrospective | `retro` | Human | Owner | Periodically |
 
 Outside the workflow: the remaining productivity skills (`teach`, `wait-what`) and the `misc`
-and `in-progress` buckets, used only when the fork says so (P16); the required
+and `in-progress` buckets, used only when P16 names them; the required
 `git-guardrails-claude-code` is the one exception.
 
 ---
@@ -266,9 +269,9 @@ it never named; a deploy-only gate leaves unreviewed code and LLM text on `main`
 craft (two axes, mutation, adversarial probes, mocks) is in the reviewer definition, A2.
 
 **Reviewer model and stance:** at least as strong as the builder, with an adversarial prompt, not
-a copy of the builder's. The same model family is acceptable; state the blind-spot risk in the
-fork. Independence rests on the separate dispatch and the stance; the mutation tests are the
-check that does not depend on the reviewer's judgement.
+a copy of the builder's. The same model family is acceptable. Independence rests on the separate
+dispatch and the stance; the mutation tests are the check that does not depend on the reviewer's
+judgement.
 
 **Delta re-reviews until CLEAN** (A3); expect two or three rounds on a high-risk PR. Why: a fix to
 a guard often opens a bypass next to the one it closes. **Re-review only when it pays:** the fix
@@ -297,7 +300,7 @@ own). Grep current main before filing. Why: the reviewer's base may be stale.
 | docs | only `*.md` that no program or LLM reads at runtime | Coordinator reads the diff; no review agent, no CI, no deploy |
 | config/ops | config, ops scripts, service units; no core code | 1 review; batch CI; deploy in window; scripted dry-run |
 | core | core code outside the critical set | 1 review; batch CI; scripted rehearsal if you have one |
-| critical | irreversible, security- or safety-relevant, text an LLM reads at runtime, scripts that write production data | 1 review **with mutation tests in a sandbox**; batch CI; a bespoke rehearsal when the plain one misses the new behaviour |
+| critical | irreversible, security- or safety-relevant, text an LLM reads (prompts, `CLAUDE.md`, agent definitions), scripts that write production data | 1 review **with mutation tests in a sandbox** (for text instead: a review against this playbook and the code it steers; no rehearsal); batch CI; a bespoke rehearsal when the plain one misses the new behaviour |
 
 The docs class is the one exception to "review gates the merge"; a file any program or LLM reads
 at runtime is never docs. Why the critical class keeps the full gate: review catches defects there
@@ -439,15 +442,15 @@ For GitHub and `gh`; translate for another host. The coordinator lands PRs only 
      targeted plus guard tests there; both must pass. Needs Git 2.38 or newer.
    - `gh pr merge <p> --squash --match-head-commit <reviewed full sha> --subject … --body-file …`.
      A refusal means the head moved: delta re-review, never re-merge without the flag.
-   - Clean up the builder tree (item 8) only after `state == MERGED`. Why: without the pin, a push after the verdict
-     ships unreviewed code; a delete chained after the merge can close an unmerged PR; a removed
+   - Clean up the builder tree (item 8) only after `state == MERGED`. Why: without the pin, a
+     push after the verdict ships unreviewed code; a delete chained after the merge can close an unmerged PR; a removed
      worktree makes the builder unresumable.
 6. **Destructive commands only in a tree you created and nobody else uses.** In a shared tree (main
    checkout, CI tree, production checkout) never `checkout -- <path>`,
    `restore`, `reset --hard`, `clean -f[dx]`, `stash`, or `switch`. Anywhere: never bare
    `push --force`, `push --delete` or `branch -D` before `MERGED`/`CLOSED`, `worktree remove --force`
-   on a tree you did not create, `gc --prune=now` while agents run. To undo your own edit:
-   `git diff > <scratch>/<role>-<n>/undo.patch`, `git apply -R` on your hunk. Enforced by the
+   on a tree you did not create, `gc --prune=now` while agents run. Agents undo their own edits
+   with a patch (A1, A2). Enforced by the
    `git-guardrails-claude-code` hook. Why: `clean -x` also removes ignored files such as a shared
    environment, and the others discard work that is not yours.
 7. **Never rewrite a branch under review.** Fixes are new commits, so the delta reviewer diffs
@@ -461,8 +464,8 @@ For GitHub and `gh`; translate for another host. The coordinator lands PRs only 
    branch cannot be in two worktrees; that builder's scratch subdir is `<scratch>/builder-<n>-<k>/`).
    Builder trees: remove only after `MERGED` or `CLOSED`: `worktree unlock`, `worktree remove`,
    `branch -D`, delete the remote branch, remove `<scratch>/builder-<n>/`.
-   Review trees: `git worktree add --detach <scratch>/work/rev-<p>[-<k>] <sha>`; the coordinator removes
-   each with `worktree remove` after its verdict.
+   Review trees: `git worktree add --detach <scratch>/work/rev-<p>[-<k>] <sha>`; the coordinator
+   removes each with `worktree remove` after its verdict.
    Weekly, as a script (`hygiene.sh`, from A8 with nothing in flight): `gh pr list --head <b>
    --state all` per `ticket-*` branch, remove merged or closed ones as above (never `--force`);
    remove `rev-*` trees whose PR is merged or closed; `git worktree prune`; list every worktree
@@ -481,14 +484,13 @@ For GitHub and `gh`; translate for another host. The coordinator lands PRs only 
 
 ## 9. Context hygiene and metrics
 
-- **Script the hand-back turns** (read, merge, verify, clean up, fast-forward, CI): `land.sh` and
-  `ship.sh` are the biggest saving in coordinator context.
-- **`CLAUDE.md`**: short, true today, history moved to `HISTORY.md`. Why: re-read every turn.
 - **`GLOSSARY.md`**: one term, one meaning, an "avoid" list; agents use its words and challenge
   drift. It and the roadmap issue outrank disagreeing prose.
-- **Memory directory**: an index (about 50 lines, under 6 KB) plus one note per correction or
-  confirmed approach: rule, why, how to apply. Prune, merge, resolve contradictions. Why: the index
-  is in every turn, and contradicting notes get applied at random.
+- **Memory directory**: working state and corrections not yet landed; an index (about 50 lines,
+  under 6 KB) plus one note each. A correction that changes a project rule goes into `CLAUDE.md`
+  by PR, then its note is deleted. Prune, merge, resolve contradictions. Why: the index is in
+  every turn, contradicting notes get applied at random, and a rule kept in memory drifts from
+  `CLAUDE.md`.
 - **A status claim needs a check:** before "missing", "open", "done" or "impossible", look in the
   tracker and the repo (for a file, also where downloads land). Summaries, agent reports and docs
   are hints, not evidence. Why: after a compaction the summary is all the coordinator has, and it
@@ -528,7 +530,7 @@ For GitHub and `gh`; translate for another host. The coordinator lands PRs only 
 - **Stay on the ticket** the owner is discussing; other questions stay parked until their ticket
   comes up, and a wait for agents is not filled with the next ticket. While agents work, report on
   the current topic.
-- **No owner signatures in normal operation**, except the approvals the fork reserves (P1, P9).
+- **No owner signatures in normal operation**, except the approvals P1 and P9 reserve.
   Replace any "owner signs/approves" step in an agent proposal with code that refuses and logs;
   search proposals for "owner signs", "human-signed", "owner reviews" before presenting them, and
   brief discussion agents so. Why: agents add a human wherever code cannot decide. If a rule
@@ -549,7 +551,7 @@ are engineering defaults.
 source for every number. Parallel rounds only for openings; close sequentially (one drafts, the
 other signs or amends item by item). Why: in parallel closing rounds each adopts the other's
 wording and they never converge. The coordinator relays, never decides; results go to the owner
-one at a time from the `decisions-pending` list.
+one at a time as `ready-for-human` issues (P15).
 
 ---
 
@@ -590,11 +592,9 @@ one at a time from the `decisions-pending` list.
 - [ ] `.claude/agents/builder.md`, `reviewer.md`, `researcher.md` copied from A1, A2, A11 (project
       values stay in `CLAUDE.md`; fill in `<playbook>`, set the model lines per P5).
 - [ ] `land.sh`, `ship.sh`, the deploy log, A9 with its verdict logic tested on canned parts.
-- [ ] Write the fork: P1-P17 in section 0 order, plugin version pinned with the practice per
-      skill, project values and evidence, the project's own runbook rows.
 - [ ] `GLOSSARY.md`: 10-20 terms with "avoid" lists, via `domain-modeling` and `grilling` (or the
       owner's `/mattpocock-skills:grill-with-docs`).
-- [ ] `CLAUDE.md` from A10 (about 2 pages), written with `writing-for-agents`; the `grilling`
+- [ ] `CLAUDE.md` from A10, every P answered, written with `writing-for-agents`; the `grilling`
       opt-out line in the global `CLAUDE.md` (section 3).
 - [ ] Issue tracker and labels (P3); one roadmap issue; one status per ticket, its label; ticket
       template A5.
@@ -602,8 +602,7 @@ one at a time from the `decisions-pending` list.
       files), `<scratch>/baseline/`; shared environment and test command
       (P6); guard tests for the single-owner rules, always collected.
 - [ ] Risk-class table (P7), deploy window (P4), usage check (P10), monitor filters (section 7).
-- [ ] Owner agreement in the memory index: time zone, which decisions are theirs, builder floor,
-      push channel. Hand-off file convention (section 9).
+- [ ] Owner agreement (P1, P5, P15) answered in `CLAUDE.md`. Hand-off file convention (section 9).
 - [ ] `hygiene.sh` (section 8, item 8).
 
 ---
@@ -853,18 +852,22 @@ gh api "repos/<o>/<r>/statuses/$SHA" -f state=$ST -f context=batch-ci -f descrip
 
 ### A10. CLAUDE.md skeleton
 
+The project's only rule file (section 0). At most about 100 lines: every session and sub-agent
+loads it on every turn. Over budget, cut first what only explains why (to `docs/HISTORY.md`),
+then restated tool values (the pointer and the enforcement table rows stay). A change to it is critical class (section 5), never a reflex
+edit in the middle of a task.
+
 ```
 # <Project> — Coordinator Context
-## What this project is            (3-5 lines; what "good" means; what evidence counts)
-## Phases                          (done / active / next)
-## Ground rules                    (P1, P2, P4; the coordinator never edits code)
-## Enforcement table               (rule | tooling: test / CI guard / hook / permissions.deny | or instruction)
-## Domain rules (optional)         (P9)
-## How to dispatch                 (agent types, builder floor, risk-class table, test commands, P5/P6/P12)
-## Session duties                  (P14, P15)
-## Issue tracker / labels / domain docs (pointers)
-## Agent skills                    (pinned version; P16, P17)
-## Directory map                   (verified date; fix wrong lines, don't work around them)
+Playbook: docs/playbook/AGENT-WORKFLOW-PLAYBOOK.md (read Core at session start). Project rules: here, or in the file a line names.
+## What this project is   (3-5 lines; what "good" means; what evidence counts)
+## Phases                 (done / active / next)
+## Ground rules           (P1, P2, P4, P9)
+## Enforcement table      (P8: rule | test / CI guard / hook / permissions.deny | or instruction)
+## How to dispatch        (P5, P6, P7, P10, P11, P12)
+## Session duties         (P14, P15)
+## Agent skills           (setup-matt-pocock-skills writes this block: P3; below it P13, P16, P17)
+## Directory map          (verified date; fix wrong lines, don't work around them)
 ```
 
 ### A11. Researcher
