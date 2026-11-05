@@ -73,6 +73,9 @@ an absolute path that differs per machine, into `.claude/settings.local.json`:
 { "env": { "PLAYBOOK_SCRATCH": "<absolute scratch dir outside the repo>" } }
 ```
 
+Keep the scratch directory out of cloud-synced folders (OneDrive, Dropbox, Nextcloud): every agent
+worktree lands there, and the sync client re-reads each one.
+
 The plugin also ships `land.sh` and `hygiene.sh` (playbook section 8) and `batch-ci.sh`
 (A9) for the coordinator and `usage.py`, which reads the subscription's 5-hour and weekly limits (section 7); its
 hooks create every agent worktree under `$PLAYBOOK_SCRATCH/work/` from a fresh
@@ -91,11 +94,19 @@ Projects that keep a copy of `AGENT-WORKFLOW-PLAYBOOK.md`, or a `PROJECT-<NAME>-
 
 1. Diff the copy against this repo. Every local edit is either a project value (step 2) or a
    general fix (open a `feedback` issue here).
-2. Rewrite `CLAUDE.md` from A10: one line per P answer (P7 and P8 are tables), merged with what `CLAUDE.md` and the
-   project file said. Where they disagree, decide once and keep only that line.
-3. Move evidence, incidents and history from the project file into `docs/HISTORY.md`; delete the
-   project file and any other file restating rules (orchestration notes, prompt collections). Delete
-   copies of the builder, reviewer and researcher from `.claude/agents/` and load the plugin
+2. Rewrite `CLAUDE.md` from A10 and sort every rule of the project file and the old `CLAUDE.md`
+   (playbook section 0). Where two say different things, decide once and keep only that line.
+
+   | The rule is | It goes to |
+   |---|---|
+   | An answer to a P, or a value a tool runs | where playbook section 0 says (a `Pn:` line, or the tool's file) |
+   | A rule for one module or folder only | `.claude/rules/<module>.md` with a `paths:` list (A10) |
+   | Any other project rule | one line under the nearest A10 heading |
+   | Why a rule exists, evidence, incidents, superseded values | `docs/HISTORY.md` |
+   | Already in the playbook | delete it; if the playbook is wrong, open a `feedback` issue here |
+
+3. Delete the project file and any other file restating rules (orchestration notes, prompt
+   collections). Delete copies of the builder, reviewer and researcher from `.claude/agents/` and load the plugin
    instead (above); move the builder's `model:` into `.claude/settings.json`. Other tool configuration
    stays: project-only agents, `docs/agents/`, scripts.
 4. `git rm -r` the copy, add the submodule as above, point any awk command at
@@ -103,6 +114,10 @@ Projects that keep a copy of `AGENT-WORKFLOW-PLAYBOOK.md`, or a `PROJECT-<NAME>-
 5. Re-check `CLAUDE.md` against the playbook's commit log since the copy's date.
 
 ## Get updates (only when you want them)
+
+First check that `docs/playbook` is a submodule: `git ls-files -s docs/playbook` prints one line
+with mode `160000`. If it lists files or nothing, migrate first (above): the commands below would
+commit a copy's local edits as a playbook bump.
 
 ```bash
 git submodule update --remote docs/playbook   # pull latest

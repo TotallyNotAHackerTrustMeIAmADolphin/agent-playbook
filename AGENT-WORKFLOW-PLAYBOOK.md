@@ -107,7 +107,9 @@ Single-writer projects (P5) skip the builder role: section 1.
 ## 0. What your project decides (P1-P17)
 
 Each answer is one line in the project's `CLAUDE.md`, under the A10 heading that names its P:
-`Pn: <answer>` or `Pn: default` (P7 and P8 are tables). A project rule that matches no P goes
+`Pn: <answer>`, `Pn: default` (P7 and P8 are tables), or `Pn: n/a (<reason>)` for a P the
+project does not have, such as P4 without a deployment; P5 and P6 always have a value, since the
+plugin's hooks run them. A project rule that matches no P goes
 under the nearest A10 heading. A value a tool executes lives in that tool, and the `CLAUDE.md`
 line names the file instead of restating the value: the settings files for the builder
 model and the gate check (`.claude/settings.json`) and the scratch path (`.claude/settings.local.json`) (P5, P6), the batch CI settings and the known-red file (P11, A9), the setup skill's `docs/agents/`
@@ -124,7 +126,7 @@ restated in `CLAUDE.md`. Then work the checklist in section 12.
 | P3 | Issue tracker, CLI, labels | Core, 3 | GitHub Issues via `gh`; `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`; one roadmap issue |
 | P4 | Deploy window, command, verification | 6 | After a production job finishes or off-peak; full sha from a clean main checkout; the service's health signal |
 | P5 | Parallelism, builder model, turn cap | 1, 2, 4 | 3 builders on disjoint files (a project may set 1-5); mid-tier model, set as `env.CLAUDE_CODE_SUBAGENT_MODEL` in `.claude/settings.json` (it applies to every sub-agent whose definition names no model: builder, researcher, `general-purpose`, Explore, Plan; the reviewer's is `opus`; pass a model at dispatch for an ops agent that needs a stronger one); `maxTurns` from the plugin. Or `single writer` (section 1) |
-| P6 | Test, lint, environment commands | 4, A1 | One shared environment; quiet flags; `<scratch>` is `env.PLAYBOOK_SCRATCH` in the uncommitted `.claude/settings.local.json` (an absolute, machine-specific path); `env.PLAYBOOK_BUILDER_CHECK` in `.claude/settings.json` is the command the hand-back gate runs in the builder's tree (targeted and guard tests plus the linter, under 9 minutes, section 4); `<scratch>/work/` for worktrees, `<scratch>/<role>-<n>/` for each agent's temp files; one read-only `<scratch>/baseline/` |
+| P6 | Test, lint, environment commands | 4, A1 | One shared environment; quiet flags; `<scratch>` is `env.PLAYBOOK_SCRATCH` in the uncommitted `.claude/settings.local.json` (an absolute, machine-specific path); `env.PLAYBOOK_BUILDER_CHECK` in `.claude/settings.json` is the command the hand-back gate runs in the builder's tree (targeted and guard tests plus the linter, under 9 minutes, section 4; without a test suite, the build, failing on any warning); `<scratch>/work/` for worktrees, `<scratch>/<role>-<n>/` for each agent's temp files; one read-only `<scratch>/baseline/` |
 | P7 | Risk classes and top-class paths | 5 | The table in section 5 |
 | P8 | Enforcement table | 6 | Tooling for irreversible and single-owner rules and model/config choice; instruction for process rules |
 | P9 | Domain invariants, irreversible paths | 6 | None; if one exists: safe default behind a config flag, invariants only in code, one explicit owner approval to cross |
