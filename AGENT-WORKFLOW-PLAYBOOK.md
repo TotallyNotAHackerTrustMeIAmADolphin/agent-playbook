@@ -648,8 +648,8 @@ one at a time as `ready-for-human` issues (P15).
 
 - [ ] This file as the `docs/playbook/` submodule (README), never a copy and never edited in the
       project; a general fix goes upstream as a `feedback` issue.
-- [ ] Install mattpocock-skills; the owner runs `/mattpocock-skills:setup-matt-pocock-skills`
-      once (writes `docs/agents/`).
+- [ ] The `playbook` plugin installs mattpocock-skills as its dependency (README); the owner
+      runs `/mattpocock-skills:setup-matt-pocock-skills` once (writes `docs/agents/`).
 - [ ] Git 2.38 or newer on every machine that lands merges (section 8, item 5).
 - [ ] Merge settings: squash only, title = PR title, message = PR body, auto-delete head branches
       (`gh api -X PATCH repos/<o>/<r> -F allow_merge_commit=false -F allow_rebase_merge=false

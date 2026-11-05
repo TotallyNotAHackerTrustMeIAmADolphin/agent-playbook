@@ -1,6 +1,11 @@
 {
   "name": "agent-playbook",
-  "owner": { "name": "agent-playbook maintainers" },
+  "owner": {
+    "name": "agent-playbook maintainers"
+  },
+  "allowCrossMarketplaceDependenciesOn": [
+    "claude-plugins-official"
+  ],
   "plugins": [
     {
       "name": "playbook",
