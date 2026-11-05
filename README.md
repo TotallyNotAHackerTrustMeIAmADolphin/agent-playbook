@@ -43,15 +43,15 @@ from the submodule in each clone (it writes the absolute path to the uncommitted
 `.claude/settings.local.json`). The plugin depends on `mattpocock-skills` (playbook section 3) and
 installs it too, from the official marketplace; without that marketplace the plugin does not load:
 
-Install while no agent runs (its hand-back hook acts on agents already in flight), and from the
-submodule, not from GitHub: a GitHub source follows the playbook's `main`, not the commit the
-project pins.
-
 ```bash
 claude plugin marketplace add anthropics/claude-plugins-official   # once per user, if missing
 claude plugin marketplace add ./docs/playbook --scope local
 claude plugin install playbook@agent-playbook --scope local
 ```
+
+Install or update it while no playbook agent runs (its hand-back hook acts on builders already in
+flight), and from the submodule, not from GitHub: a GitHub source follows the playbook's `main`,
+not the commit the project pins.
 
 Claude Code reads the plugin in place from the folder (not a cached copy), so bumping the
 submodule also updates the agents at the next session start; the plugin version does not matter.
