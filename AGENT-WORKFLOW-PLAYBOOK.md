@@ -114,8 +114,9 @@ line names the file instead of restating the value: the settings files for the b
 model (`.claude/settings.json`) and the scratch path (`.claude/settings.local.json`) (P5, P6), the A9 script and its known-red file (P11), the setup skill's `docs/agents/`
 files (P3; the glossary layout of P13), the plugin installation (P16). A value shared by all projects may stand in the
 global `CLAUDE.md`, and the project line points there. Nowhere else: no second project file, no
-memory note. A general rule that is wrong for the project is fixed in this file (README,
-feedback), never restated in `CLAUDE.md`. Then work the checklist in section 12.
+memory note; the one exception is a rule for one module only, in `.claude/rules/` (A10). A
+general rule that is wrong for the project is fixed in this file (README, feedback), never
+restated in `CLAUDE.md`. Then work the checklist in section 12.
 
 | ID | Decide | § | Default |
 |---|---|---|---|
@@ -155,7 +156,7 @@ section 2 and A7, the rate-limit row's floor clause, the idle-time metric, the `
 check, A1, A4, the `playbook:builder` agent). Kept: tickets in the tracker, one branch and PR
 per ticket with closing keywords, the risk classes (config/ops and above: a separate `reviewer`
 dispatch, never a self-review; docs and config values: the writer reads its own diff and says so in
-the PR), batch CI, scripts, `CLAUDE.md` as the only rule file. The owner decides when the full rules
+the PR), batch CI, scripts, `CLAUDE.md` as the rule file (A10). The owner decides when the full rules
 return: when a second writer (an agent or the owner) edits the repo in parallel, or the project
 starts running a production system (section 6). Why: with one writer and the owner in the loop, a
 coordinator that never edits only adds hand-offs.
@@ -264,7 +265,7 @@ behind the definitions.
   permission mode. Revisit teams only for parallel review lenses (security, performance, tests).
 - **Large files by grep and offset (A1).** Why: cost is turns times context, so a large read is
   paid again on every later turn. `CLAUDE.md` itself is cheap: in the reference project the docs
-  preamble was about 0.1% of a builder's cost, so keep it short rather than out.
+  preamble was about 0.1% of a builder's cost, so keep it within A10's budget rather than out.
 - **Budget (A1, `maxTurns`).** Why: context grows every turn, so long builds cost
   disproportionately and a split resets it. An agent cannot see its own context size, so its turn
   count is the gauge; at `maxTurns` it returns partial output and can be resumed via `SendMessage`.
@@ -799,9 +800,14 @@ gh api "repos/<o>/<r>/statuses/$SHA" -f state=$ST -f context=batch-ci -f descrip
 
 ### A10. CLAUDE.md skeleton
 
-The project's only rule file (section 0). At most about 100 lines: every session and sub-agent
-loads it on every turn. Over budget, cut first what only explains why (to `docs/HISTORY.md`),
-then restated tool values (the pointer and the enforcement table rows stay). A change to it is critical class (section 5), never a reflex
+The project's rule file (section 0). Under 200 lines: every session and builder or reviewer
+loads it on every turn, and the vendor's guidance is that longer files cost context and lower
+adherence. Each line must say something an agent could not work out from the code. The one
+exception, a rule for one module only, goes into `.claude/rules/<topic>.md` with a `paths:` list:
+Claude Code loads it only when an agent reads or edits a matching file (not on grep or a diff).
+So `CLAUDE.md` names the file, and a dispatch for that module names it too. A rule file without a
+`paths:` list loads like a second `CLAUDE.md` and is not allowed: its rule goes into `CLAUDE.md`.
+Over budget, cut first what only explains why (to `docs/HISTORY.md`), then restated tool values (the pointer and the enforcement table rows stay). A change to it is critical class (section 5), never a reflex
 edit in the middle of a task.
 
 ```

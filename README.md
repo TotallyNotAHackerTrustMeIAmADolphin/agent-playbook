@@ -13,7 +13,7 @@ git commit -m "Add agent playbook submodule"
 
 Fixed path: `docs/playbook/` (the playbook's own commands assume it). Then write `CLAUDE.md`
 from A10; the line under its title points every session at Core. Evidence and history go to
-`docs/HISTORY.md`. There is no second project rule file.
+`docs/HISTORY.md`. There is no second project rule file (only module-scoped `.claude/rules/`, A10).
 
 The builder, reviewer and researcher agents ship from this repo as the `playbook` plugin. Load it
 from the submodule, once per clone (it writes the absolute path to the uncommitted
