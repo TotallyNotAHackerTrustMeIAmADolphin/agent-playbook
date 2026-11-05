@@ -94,7 +94,7 @@ Single-writer projects (P5) skip the builder role: section 1.
 [ ] ready-for-agent issues: list; verify each against main (step 2); dispatch the best.
 [ ] Reviewer low notes not yet ticketed or folded into a module's next PR.
 [ ] "Follow-up" items in merged PR bodies.
-[ ] hygiene.sh run in the last 7 days (section 8, item 8)?
+[ ] hygiene.sh and check-setup.sh run in the last 7 days (section 8, item 8; section 12)?
 [ ] Known-red list: every entry has an owned ticket (section 7); test/lint debt, mutation gaps, doc drift.
 [ ] Architecture audit by an auditor agent (codebase-design); propose
     /mattpocock-skills:improve-codebase-architecture or /mattpocock-skills:retro to the owner.
@@ -658,6 +658,8 @@ one at a time as `ready-for-human` issues (P15).
       (P6); guard tests for the single-owner rules, always collected.
 - [ ] Risk-class table (P7), deploy window (P4), usage check (P10), monitor filters (section 7).
 - [ ] Owner agreement (P1, P5, P15) answered in `CLAUDE.md`. Hand-off file convention (section 9).
+- [ ] `bash docs/playbook/plugin/scripts/check-setup.sh` passes: one rule file, no copies or
+      forks, `CLAUDE.md` budget, scoped module rules, plugin and settings.
 
 ---
 

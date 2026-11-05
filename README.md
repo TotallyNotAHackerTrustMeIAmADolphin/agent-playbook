@@ -48,6 +48,9 @@ hooks create every agent worktree under `$PLAYBOOK_SCRATCH/work/` from a fresh
 with `PLAYBOOK_REQUIRE_TICKET=1` refuse a dispatch whose description does not start with an
 issue number (playbook section 4). The hook scripts need `bash`, `git` and `timeout` (Git Bash on Windows has all three; on macOS install coreutils).
 
+Check the setup with `bash docs/playbook/plugin/scripts/check-setup.sh` from the project's root:
+it names every copy, fork, missing setting or oversized `CLAUDE.md` it finds.
+
 Fresh clone of a project: `git clone --recurse-submodules <url>` (or `git submodule update --init`).
 
 ## Migrating from a copy or a project playbook file
