@@ -12,7 +12,9 @@ project installs it, its hooks run shell scripts on that machine.
 
 The coordinator's scripts `land.sh` and `hygiene.sh` merge PRs and delete merged branches and
 worktrees when run; `usage.py` runs `claude -p /usage`, which reads the account's limits and
-calls no model. Nothing runs them automatically.
+calls no model; `batch-ci.sh` runs the project's configured test, lint and rerun commands
+(`PLAYBOOK_CI_*`) and posts a commit status; `check-setup.sh` only reads and fetches. Nothing runs
+them automatically.
 
 Its agent definitions also steer what agents do in your repository.
 

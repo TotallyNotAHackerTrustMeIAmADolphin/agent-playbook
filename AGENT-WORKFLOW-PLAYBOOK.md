@@ -110,7 +110,7 @@ Each answer is one line in the project's `CLAUDE.md`, under the A10 heading that
 `Pn: <answer>` or `Pn: default` (P7 and P8 are tables). A project rule that matches no P goes
 under the nearest A10 heading. A value a tool executes lives in that tool, and the `CLAUDE.md`
 line names the file instead of restating the value: the settings files for the builder
-model and the gate check (`.claude/settings.json`) and the scratch path (`.claude/settings.local.json`) (P5, P6), the A9 script and its known-red file (P11), the setup skill's `docs/agents/`
+model and the gate check (`.claude/settings.json`) and the scratch path (`.claude/settings.local.json`) (P5, P6), the batch CI settings and the known-red file (P11, A9), the setup skill's `docs/agents/`
 files (P3; the glossary layout of P13), the plugin installation (P16). A value shared by all projects may stand in the
 global `CLAUDE.md`, and the project line points there. Nowhere else: no second project file, no
 memory note; the one exception is a rule for one module only, in `.claude/rules/` (A10). A
@@ -129,7 +129,7 @@ restated in `CLAUDE.md`. Then work the checklist in section 12.
 | P8 | Enforcement table | 6 | Tooling for irreversible and single-owner rules and model/config choice; instruction for process rules |
 | P9 | Domain invariants, irreversible paths | 6 | None; if one exists: safe default behind a config flag, invariants only in code, one explicit owner approval to cross |
 | P10 | Resource thresholds | 7 | Dispatch up to 95% of the 5-hour window; stop developing at 95% weekly; clean up above about 85% disk; agent work under `nice` |
-| P11 | Full-suite command, known reds | 7 | A9 on one recycled tree with a known-red file |
+| P11 | Full-suite command, known reds | 7 | `batch-ci.sh` (A9): `env.PLAYBOOK_CI_RUNNER`, `PLAYBOOK_CI_PARTS`, `PLAYBOOK_CI_LINT` in `.claude/settings.json`; a known-red file |
 | P12 | Branch, PR, merge conventions | 8 | `ticket-<n>` branches, squash, `--body-file`, trailers copied from the session |
 | P13 | Glossary, history, memory | 9 | `GLOSSARY.md`, `docs/HISTORY.md` (evidence, incidents, superseded values), memory directory with one index |
 | P14 | Alert and monitoring duties | 7, A7 | Read the alerts log at session start and on every watch event; ack via an append-only script; once a wave's cause is known, one wave ack (pattern, time range, note) covers its lines, later matches go to the digest, a line outside the pattern still alerts; repeat lines open > 4 h; one daily digest |
@@ -667,8 +667,8 @@ one at a time as `ready-for-human` issues (P15).
       `env.PLAYBOOK_BUILDER_CHECK` (P6); `.claude/settings.local.json`:
       `env.PLAYBOOK_SCRATCH` (P6).
       No copies of the agent definitions in `.claude/agents/`.
-- [ ] `env.PLAYBOOK_AFTER_LAND` in `.claude/settings.json` if needed (section 8, item 10), `ship.sh`, the deploy log, A9 with its
-      verdict logic tested on canned parts.
+- [ ] `env.PLAYBOOK_AFTER_LAND` in `.claude/settings.json` if needed (section 8, item 10), `ship.sh`, the deploy log, the
+      batch CI settings (A9).
 - [ ] `GLOSSARY.md`: 10-20 terms with "avoid" lists, via `domain-modeling` and `grilling` (or the
       owner's `/mattpocock-skills:grill-with-docs`).
 - [ ] `CLAUDE.md` from A10, every P answered, written with `writing-for-agents`; the `grilling`
@@ -783,58 +783,18 @@ Add these sections:
 
 ### A9. Batch CI script
 
-`run-full-suite.sh <full sha>` writes `<scratch>/ci/<sha7>.log` and ends with one line
-`BATCH CI <sha7>: GREEN|RED[...]`. A timed-out or crashed part, an exit-1 part without failure
-ids and a missing part each get their own RED line, never silence. The id extraction needs `perl`
-(any non-greedy regex works; it keeps `test_p[x - y]` whole). Before trusting it, test the verdict on canned parts: timeout,
-known-red failure, a captured `ERROR` log line, a parametrised id with " - ", rc 2/4/5/137, lint
-failure, a missing part.
-
-```bash
-#!/usr/bin/env bash
-set -u; SHA="$1"; S7="${SHA:0:7}"; ROOT=<scratch>/ci; TREE="$ROOT/tree"; LOG="$ROOT/$S7.log"
-KR="$ROOT/known_red.txt"                      # test ids, one per line; '#' comments; each owned by a ticket
-: > "$LOG"; rm -f "$ROOT/$S7".part-*
-( set -e                                      # a failed fetch/checkout must not fall through to a stale tree
-  git -C <main checkout> fetch -q origin
-  [ -d "$TREE" ] || git -C <main checkout> worktree add --detach "$TREE" "$SHA"   # ONE recycled tree
-  cd "$TREE" && git checkout -q --detach "$SHA" ) || { echo "BATCH CI $S7: RED (checkout failed)" | tee -a "$LOG"; exit 1; }
-cd "$TREE"
-# No pipe between runner and exit code (a pipe to tail loses 124). -rfE prints one FAILED/ERROR <id> line each.
-N=0; run() { N=$((N+1)); timeout 590 <test runner> -q -rfE "$@" >"$ROOT/$S7.part-$N.out" 2>&1
-             echo $? >"$ROOT/$S7.part-$N.rc"; }
-run <paths>      # split so each part fits the tool's time limit
-run <paths>
-WANT=$N                                       # every run call above must leave an .rc file
-<linter> check . >>"$LOG" 2>&1; LINT=$?
-# ids from the short-summary section only, well-formed lines only, " - msg" cut after the id
-ids() { sed -n '/^=* short test summary info/,$p' "$1" | perl -ne \
-  'print "$1\n" if /^(?:FAILED|ERROR) (\S+?\.py(?:::[^\s\[]+)*(?:\[.*?\])?)(?: - .*)?\s*$/'; }
-: > "$ROOT/fails"; BAD=0; SEEN=0
-for f in "$ROOT/$S7".part-*.rc; do
-  [ -e "$f" ] || continue; SEEN=$((SEEN+1)); n=${f##*.part-}; n=${n%.rc}; rc=$(cat "$f"); out="$ROOT/$S7.part-$n.out"
-  case $rc in
-    0) echo "part $n: ok" >>"$LOG";;
-    124) echo "part $n: TIMEOUT" >>"$LOG"; BAD=1;;
-    *) ids "$out" >>"$ROOT/fails"; c=$(ids "$out" | wc -l)
-       if [ "$rc" = 1 ] && [ "$c" -gt 0 ]; then echo "part $n: failed ($c ids)" >>"$LOG"
-       else echo "part $n: ERROR rc=$rc" >>"$LOG"; BAD=1; fi;;   # crash, rc 2-5/137, or rc 1 with no ids
-  esac
-done
-[ "$SEEN" -eq "$WANT" ] || { echo "parts missing: $SEEN of $WANT" >>"$LOG"; BAD=1; }
-grep -vE '^\s*(#|$)' "$KR" | sed 's/[[:space:]]*$//' >"$ROOT/kr"
-sort -u "$ROOT/fails" | grep -vxFf "$ROOT/kr" >"$ROOT/new"; sort -u "$ROOT/fails" | grep -xFf "$ROOT/kr" >"$ROOT/known"
-{ echo "known-red:"; sed 's/^/  /' "$ROOT/known"; echo "new failures:"; sed 's/^/  /' "$ROOT/new"; } >>"$LOG"
-# rerun each NEW failure once, alone: a pass = "flaky candidate", still not GREEN (a ticket decides)
-FLAKY=""; while IFS= read -r id; do [ -n "$id" ] || continue
-  if timeout 300 <test runner> -q "$id" </dev/null >/dev/null 2>&1; then FLAKY="$FLAKY $id"; echo "flaky candidate: $id" >>"$LOG"; else BAD=1; fi
-done <"$ROOT/new"
-[ "$LINT" = 0 ] || { echo "lint: FAILED" >>"$LOG"; BAD=1; }
-if [ "$BAD" = 1 ]; then V="RED"; elif [ -n "$FLAKY" ]; then V="RED (flaky candidates only:$FLAKY)"; else V=GREEN; fi
-echo "BATCH CI $S7: $V" | tee -a "$LOG"
-[ "$V" = GREEN ] && ST=success || ST=failure
-gh api "repos/<o>/<r>/statuses/$SHA" -f state=$ST -f context=batch-ci -f description="$LOG" >/dev/null
-```
+`docs/playbook/plugin/scripts/batch-ci.sh <full sha>`, run by the coordinator from the main
+checkout in the background, one at a time (a lock refuses a second). It checks the sha out in one
+recycled detached tree, `<scratch>/ci/tree`, runs each part of the suite under a timeout, runs
+the linter, writes `<scratch>/ci/<sha7>.log` and ends with one line `BATCH CI <sha7>: GREEN|RED[...]`,
+posted as the commit status `batch-ci`; exit 0 only on GREEN. RED for a new failure, a timed-out
+or crashed part (rc 2-5, 137), an exit-1 part without failure ids, a missing part, settings that
+name no part, and a lint failure. A new failure that passes when rerun alone is a flaky candidate: still RED until a ticket
+decides (section 7). The header of the script lists the settings: a pytest-shaped runner (`-q
+-rfE`), the parts, the linter, the known-red file. Its verdict logic is tested on canned parts
+(timeout, known-red, `ERROR` line, parametrised id with " - ", rc 2/4/5/137, lint, flaky, missing part, no parts). A
+project with another runner writes its own script with the same verdict line and the same RED
+cases, and names it in P11.
 
 ### A10. CLAUDE.md skeleton
 
