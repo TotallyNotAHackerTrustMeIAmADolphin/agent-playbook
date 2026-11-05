@@ -11,7 +11,8 @@ project installs it, its hooks run shell scripts on that machine.
 - `PreToolUse` on `Agent`: reads each dispatch's input and checks the description; runs nothing.
 
 The coordinator's scripts `land.sh` and `hygiene.sh` merge PRs and delete merged branches and
-worktrees when run; nothing runs them automatically.
+worktrees when run; `usage.py` runs `claude -p /usage`, which reads the account's limits and
+calls no model. Nothing runs them automatically.
 
 Its agent definitions also steer what agents do in your repository.
 

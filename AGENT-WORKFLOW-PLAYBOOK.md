@@ -76,7 +76,7 @@ Single-writer projects (P5) skip the builder role: section 1.
 ### A7. Turn checklist (start of every turn)
 
 ```
-[ ] date (owner's zone); usage check; df -h
+[ ] date (owner's zone); usage check (section 7); df -h
 [ ] Count running builders. Below the floor (section 2)? Dispatch FIRST.
 [ ] Hand-backs: read report -> class the PR -> reviewer / fix / delta / land.
 [ ] Merged since last batch CI? Start batch CI on main's sha (never two at once).
@@ -425,7 +425,7 @@ critical class.
 
 | Resource | Rule | Why |
 |---|---|---|
-| **Usage budget** | Check before each dispatch (thresholds P10). Over the 5-hour threshold: no new dispatch, running agents finish, wakeup at the reset. Over the weekly threshold: stop developing; only monitor (alerts, production, deploys already armed) until the weekly reset. | Headroom for the coordinator and production. Cost is context re-read per turn: cut turns and context, not agents. |
+| **Usage budget** | Check before each dispatch (thresholds P10): `python3 docs/playbook/plugin/scripts/usage.py` (`python` on Windows) `--max-session <P10> --max-weekly <P10>` reads the 5-hour and weekly limits without a model call; exit 3 = over the 5-hour, 4 = over the weekly threshold, 1 = unreadable (say so, never guess). Over the 5-hour threshold: no new dispatch, running agents finish, wakeup at the reset. Over the weekly threshold: stop developing; only monitor (alerts, production, deploys already armed) until the weekly reset. | Headroom for the coordinator and production. Cost is context re-read per turn: cut turns and context, not agents. |
 | **Rate limit (429)** | Wakeup at the reset (in hops of at most one hour), push-notify once, resume stopped agents via `SendMessage`. An agent whose final text is a limit message ("resets HH:MM") is **stopped at limit**, neither done nor failed: record the reset in the owner's zone, resume that agent then; if it cannot be resumed, a fresh agent on the **same branch**, told what is committed. Until its reset it counts toward the builder floor, and "stopped at limit until HH:MM" is a concrete blocker in A8. | Otherwise the loop stops silently, or a fresh builder on a new branch duplicates the half-built PR; resuming is cheaper than a fresh dispatch. |
 | **Disk** | One shared dependency environment; reviews in a detached worktree (shares the object store, keeps `.git` for tests that need it); worktrees removed after merge or verdict. | An environment per worktree fills the disk. |
 | **Shared environment** | Shared interpreter, run from the worktree; no tool that re-points the editable install. | Some tools silently re-point it at the last worktree. |
