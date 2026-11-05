@@ -21,8 +21,11 @@ its size again on every later API call of that agent until a compaction drops it
 (tool name; shell tools by the command's first word; Agent by type) the script prints calls,
 errors, result tokens and carried tokens (result tokens x the later API calls that re-read them),
 then the single results that were carried most. It reads the sub-agents and the sessions' own
-transcripts (with --ticket, only that ticket's sub-agents). Result tokens are estimated from
-characters / 4 (an image counts 1600): compare actions, do not add them up as cost.
+transcripts (with --ticket, only that ticket's sub-agents). Result tokens are estimated: text at
+2 characters per token (calibrated on context growth in real transcripts: median 1.9, Bash and
+Read about 2.1, WebFetch and Grep about 1.45), fixed values for images, PDFs and tool
+references. Not counted: tool inputs (a long Write is re-read too) and the few results a
+compaction keeps. A gauge for ranking actions, not a bill.
 
 Usage: python3 ticket-usage.py [--project <repo dir>] [--ticket <n>] [--factor 3]
        python3 ticket-usage.py --by-action [--project <repo dir>] [--ticket <n>] [--top 15]
@@ -32,6 +35,7 @@ import glob
 import json
 import os
 import re
+import shlex
 import statistics
 import sys
 
@@ -39,7 +43,11 @@ TICKET = re.compile(r"\s*#(\d+)\b")
 SHELL = ("Bash", "PowerShell")
 ASSIGN = re.compile(r"[A-Za-z_][A-Za-z0-9_]*=")
 SEGMENT = re.compile(r"&&|\|\||[;|\n]")
-IMAGE_TOKENS = 1600
+PREFIX = ("do", "then", "else", "time", "nice", "timeout")
+SKIP = ("cd", "Set-Location", "pushd", "for", "while", "until", "if", "elif", "foreach", "done",
+        "fi", "}", "function", "case", "esac", "")
+CHARS_PER_TOKEN = 2
+BLOCK_TOKENS = {"image": 1600, "document": 3000, "tool_reference": 550}  # measured medians, rounded
 
 
 def project_dir(repo):
@@ -95,15 +103,25 @@ def collect(pdir):
 
 
 def shell_command(command):
-    """First command word that is not a cd, an export or a variable assignment."""
+    """First command word that is not a cd, a loop header, an export or a variable assignment."""
     for part in SEGMENT.split(command):
-        words = part.split()
+        try:
+            words = shlex.split(part, comments=True, posix=False)
+        except ValueError:
+            words = part.split()
+        words = [w.lstrip("({&") for w in words]
+        words = [w for w in words if w]
+        while words and (words[0] in PREFIX or re.fullmatch(r"-n|-?\d+[smh]?", words[0])):
+            words = words[1:]  # timeout 300 x, nice -n 10 x: x is the command
         while words and (ASSIGN.match(words[0]) or words[0] in ("export", "env")):
+            if "$(" in words[0]:  # x=$(git ...): the command substitution is the command
+                words = [words[0].split("$(", 1)[1]] + words[1:]
+                break
             words = words[1:]
         if words and words[0].startswith("$") and ("=" in words[0] or words[1:2] == ["="]):
             continue  # PowerShell: $x = ...
-        if words and words[0] not in ("cd", "Set-Location", "pushd"):
-            return os.path.basename(words[0].strip("\"'"))
+        if words and words[0].split("(")[0] not in SKIP and "()" not in words[0]:
+            return os.path.basename(words[0].strip("\"')").replace("\\", "/")) or "?"
     return "?"
 
 
@@ -126,13 +144,14 @@ def action_detail(name, inp):
 
 def result_tokens(content):
     if isinstance(content, str):
-        return len(content) // 4
+        return len(content) // CHARS_PER_TOKEN
     n = 0
     for b in content if isinstance(content, list) else []:
-        if isinstance(b, dict) and b.get("type") == "text":
-            n += len(b.get("text") or "") // 4
-        elif isinstance(b, dict) and b.get("type") == "image":
-            n += IMAGE_TOKENS
+        kind = b.get("type") if isinstance(b, dict) else None
+        if kind == "text":
+            n += len(b.get("text") or "") // CHARS_PER_TOKEN
+        else:
+            n += BLOCK_TOKENS.get(kind, 0)
     return n
 
 
@@ -188,11 +207,14 @@ def by_action(pdir, ticket, top):
             single.append((carried, tokens, action, det))
     total = sum(a[3] for a in agg.values()) or 1
     print(f"{len(paths)} transcripts, {api_calls} API calls, {processed} tokens processed"
-          f" ({processed // max(api_calls, 1)} per call): about {total} are carried tool results"
-          f" (characters / 4), the rest instructions, messages and the agents' own text,"
-          f" re-read on every call")
+          f" ({processed // max(api_calls, 1)} per call); carried tool results, estimated:"
+          f" about {total}")
     print("action\tcalls\terrors\tresult_tokens\tcarried_tokens\tshare")
-    for action, a in sorted(agg.items(), key=lambda kv: -kv[1][3]):
+    ranked = sorted(agg.items(), key=lambda kv: -kv[1][3])
+    if len(ranked) > top:
+        rest = [sum(a[i] for _, a in ranked[top:]) for i in range(4)]
+        ranked = ranked[:top] + [(f"other ({len(ranked) - top} actions)", rest)]
+    for action, a in ranked:
         print(f"{action}\t{a[0]}\t{a[1]}\t{a[2]}\t{a[3]}\t{100 * a[3] / total:.0f}%")
     print(f"\ncarried most (top {top}):\ncarried_tokens\tresult_tokens\taction\tdetail")
     for carried, tokens, action, det in sorted(single, reverse=True)[:top]:
@@ -206,7 +228,7 @@ def main(argv):
     ap.add_argument("--ticket", type=int, help="print only this ticket")
     ap.add_argument("--factor", type=float, default=3.0, help="flag above factor x median")
     ap.add_argument("--by-action", action="store_true", help="tokens per action, not per ticket")
-    ap.add_argument("--top", type=int, default=15, help="--by-action: largest results to list")
+    ap.add_argument("--top", type=int, default=15, help="--by-action: rows and results to list")
     a = ap.parse_args(argv)
 
     pdir = project_dir(a.project)
