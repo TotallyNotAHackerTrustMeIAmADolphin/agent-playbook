@@ -762,6 +762,9 @@ Title: <area>: <outcome in plain words>
 Part of #<parent>. Risk class: <class>. Depends on: #<x> (hard dependency only; no date holds).
 Why: <incident or need, with evidence links; a cause only with the query or measurement that shows it,
      otherwise this is a diagnosis ticket (diagnosing-bugs), not a fix ticket>.
+Owner's words: <the owner's sentences verbatim, with date and source (chat, issue comment); a
+     ticket written from a conversation has them. Below, marked "coordinator's reading:", what follows
+     from them. A paraphrase never replaces the quote: compactions and builders keep only the paraphrase>
 Acceptance items:
  1. <observable, testable behaviour>
  2. <refusal / fail-closed behaviour>
