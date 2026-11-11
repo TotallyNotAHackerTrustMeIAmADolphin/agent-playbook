@@ -92,7 +92,7 @@ Single-writer projects (P5) skip the builder role: section 1.
 
 ```
 [ ] ready-for-agent issues: list; verify each against main (step 2); dispatch the best.
-[ ] Merged tickets: low notes listed in the closing comment (section 5), production bugs ticketed.
+[ ] Merged tickets: every low note fixed before the merge or ticketed as new knowledge (section 5).
 [ ] hygiene.sh and check-setup.sh run in the last 7 days (section 8, item 8; section 12)?
 [ ] Known-red list: every entry has an owned ticket (section 7); test/lint debt, mutation gaps, doc drift.
 [ ] Architecture audit by an auditor agent (codebase-design); propose
@@ -334,16 +334,14 @@ differently blocks. Why: without the line, delta rounds kept opening new edge-ca
 mixed them with blockers until the loop stalled; and a reviewer asked to find problems always finds something, so
 only a finding that reproduces may stop a merge.
 
-**Low notes ride along; only new knowledge becomes a ticket.** A low note that is a fix (a test
-gap, a wording fix, hardening of code the PR touched) never gets its own ticket. Fix it in a round
-that a blocker already opened, if the fix is small. Never open a round only for a low note: a fixed
-note is new code under review. Otherwise list it at the merge in the ticket's closing comment under
-`Low notes (open), module <path>:`. The module's next dispatch picks it up (A1 "Also pick up"). When
-that ticket merges without it, the note is dropped with one line in its closing comment. Its own
-ticket goes only to a production bug (a wrong value or a false success, also in old code), a
-measured fact or a scope or design question (an owner decision goes to `ready-for-human`, P15), with
-the reason in one line. Grep current main before filing. Why: one ticket per merged PR for its
-small notes filled the backlog faster than builders emptied it; the reviewer's base may be stale.
+**Low notes are fixed in the same ticket; only new knowledge becomes a ticket.** A low note that is
+a fix (a test gap, a wording fix, hardening of code the PR touched) is fixed on the PR's branch
+before the merge, in the same fix round as the blockers. The fix itself does not reopen the review:
+the "re-review only when it pays" rule above applies, and the fix opens no new attack axis. Its own
+ticket goes only to a production bug in code the PR did not touch, a measured fact, or a scope or
+design question (an owner decision goes to `ready-for-human`, P15), with the reason in one line.
+Grep current main before filing. Why: one follow-up ticket per merged PR filled the backlog
+faster than builders emptied it; the reviewer's base may be stale.
 
 **Risk classes (adaptable default):** class each PR by its files (`gh pr diff --name-only`).
 
@@ -707,7 +705,6 @@ Dispatch prompt:
 
 ```
 Build issue #<n> (<title>), part of #<m>. Read it with: <exact CLI command; known-broken alternative>.
-Also pick up: <open low notes from this module's closing comments (section 5), or "none">.
 Risk class: <class>. <Domain rules, e.g. fail closed / refuse what you cannot verify.>
 Branch: ticket-<n>[-<k>]
 <Stacked PR only:> Base: <parent branch>
