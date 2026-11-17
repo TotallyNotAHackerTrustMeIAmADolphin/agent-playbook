@@ -144,7 +144,7 @@ restated in `CLAUDE.md`. Then work the checklist in section 12.
 
 **The coordinator never edits a repo file; reading is not editing.** Every change, a
 merge-conflict resolution included, goes to an agent; nits go back to the builder via
-`SendMessage` while its cache is warm. Why: the coordinator's context is re-read every turn and is
+`SendMessage` while its cache is warm (section 2). Why: the coordinator's context is re-read every turn and is
 several times a fresh agent's, so each edit-and-test turn there is expensive, and a bloated
 coordinator cannot run for days.
 
@@ -181,6 +181,19 @@ coordinator that never edits only adds hand-offs.
 - **Event-driven, not heartbeat.** Hand-backs wake the coordinator; timers only for wall-clock
   events (deploy window, usage reset, alert repeat). Why: each empty wakeup re-reads the whole
   context.
+- **A pause past the prompt cache costs a rebuild.** The cache lives 5 minutes on an API key or
+  usage credits, 1 hour within a subscription's limits. The first request after a longer pause
+  writes the whole history again instead of reading it: about 10 × a fresh session's small fix at
+  97k tokens of history, more for a longer one (measured, Opus 5.5, 5-minute cache, n=2-3 per pause
+  length; the 1-hour figure is calculated). So a wakeup delay sits clearly inside the TTL or is
+  accepted as one full rebuild. Before a planned pause run `/compact` with a keep-list while the
+  cache is warm (2.5 ×); after a pause `/clear` plus the hand-off (section 7), never `/compact`
+  (9.7 ×, no better than continuing). Never change the tool list or the model mid-session
+  (`--disallowedTools`, `/model`: the next turn was 22 ×, 0% cached); editing `CLAUDE.md`, adding an
+  MCP server or changing effort did not break the cache. Never set `CLAUDE_AUTOCOMPACT_PCT_OVERRIDE`
+  on a 200k-window model: it fires at 45k, below what a summary leaves (modeled). Judge cost
+  cache-weighted, never by raw tokens: runs with equal raw tokens were 6.5 × apart. Evidence:
+  `docs/research/claude-code-usage-analysis-2026-11.md`.
 
 ---
 
@@ -579,7 +592,9 @@ plugin's `land.sh` (item 10). Why: items 2, 4, 5 and 8 are what a script makes r
   deploy), then the hand-off.
 - **Hand-offs** before a planned clear (the owner's `/mattpocock-skills:handoff`, or by hand): in
   flight, production sha, open PRs, next tickets, pending decisions. After a restart, re-dispatch
-  rather than resume (transcripts may be gone).
+  rather than resume (transcripts may be gone). After a pause past the cache the hand-off is the
+  restart (section 2); scheduled `claude -p` runs start fresh and read state from a file instead of
+  `--resume` (about 3 × per run across the gap, calculated).
 - **Reviewing a day** means cross-checking the alerts log and the service manager's error lines
   against the digest and the monitors' "done" lines.
 - **PDCA on the process:** baseline the metrics, change at most a few rules so the effect is
@@ -588,7 +603,7 @@ plugin's `land.sh` (item 10). Why: items 2, 4, 5 and 8 are what a script makes r
 | Metric | Definition | Starting guess |
 |---|---|---|
 | Tokens per ticket | Python 3 (`python` on Windows): `python3 docs/playbook/plugin/scripts/ticket-usage.py`: tokens processed (a relative gauge, not cost) by every sub-agent whose description starts with `#<n>` (section 4), from the transcripts on this machine that Claude Code has not yet cleaned up; it reports what it could not attribute. Single writer: it counts only the review and research agents | Flag above 3 × median (the script marks it) |
-| Tokens per action | `ticket-usage.py --by-action [--ticket <n>]`: per tool (shell tools by command) the result tokens and how often later calls re-read them, plus the results re-read most; without `--ticket` it also reads the sessions' own transcripts. Before a sweep or after a HIGH ticket: the top rows name the rule to change (a whole-file read, a long log, a verbose command) | Track the top 3 actions' share |
+| Tokens per action | `ticket-usage.py --by-action [--ticket <n>]`: per tool (shell tools by command) the result tokens and how often later calls re-read them, plus the results re-read most; without `--ticket` it also reads the sessions' own transcripts. Before a sweep or after a HIGH ticket: the top rows name the rule to change (a whole-file read, a long log, a verbose command). A long log stays in context: +15% (750 tokens) to +64% (5,000) over the next 6 turns (n=2), so pipe noisy output through `tail` or a summary | Track the top 3 actions' share |
 | Review rounds per PR | Reviews until CLEAN, per risk class | About 1 for docs/config, 2-3 for critical |
 | Escape rate | Defects found after merge that review did not name, per 10 merged PRs | Under 1; each escape gets a rule or guard test. Escapes after a skipped re-review (section 5) are counted separately; any one is a `feedback` issue to lower the 30-line threshold |
 | Lead time | `ready-for-agent` to merged, merged to deployed | Track median and worst |
