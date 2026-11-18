@@ -812,6 +812,7 @@ Add these sections:
 ## Decisions to look at          (default taken + reason)
 ## Patterns followed / stale flagged
 ## Irreversible path: yes | no
+## Affected artifacts           (only when the change spans more than code: report, model, register, ticket; each "done" or "deliberately not"; without PRs, a line of the closing comment)
 ## Tests                         (commands, counts, mutation results, rehearsal)
 <PR footer copied from the session attribution block>
 ```
