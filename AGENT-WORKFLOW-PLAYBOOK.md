@@ -801,6 +801,10 @@ Open questions the builder must not decide: <...>  (or: "builder decides, record
 Label: ready-for-agent | needs-triage | ready-for-human
 ```
 
+**Short form:** a ticket that no builder will take (single-writer work, research, report text)
+keeps Title, parent and dependency line, Why, Owner's words, Acceptance items, Risk class and Label; `Files`, `Constraints` and
+`Open questions` may be dropped.
+
 ### A6. PR body
 
 The `pr` skill shapes the body (summary, evidence that it works, merge danger and blast radius).
