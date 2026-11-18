@@ -320,6 +320,11 @@ Why: an embedded review grades the work against the ticket's literal text and mi
 it never named; a deploy-only gate leaves unreviewed code and LLM text on `main`. The review
 craft (two axes, mutation, adversarial probes, mocks) is in the reviewer definition, A2.
 
+**Without PRs** (a project that commits to `main` by its P12 value) the gate sits at the ticket's
+close: a ticket of class config/ops or above is closed only after a `reviewer` dispatch `#<n> review
+<sha>` on the committed range, and the closing comment cites it. Why: no PR means nothing else
+triggers the review, and a ticket closed without one leaves unreviewed text or code on `main`.
+
 **Reviewer model and stance:** at least as strong as the builder (or the writer, section 1), with an
 adversarial prompt, not a copy of the builder's. The same model family is acceptable. Independence
 rests on the separate dispatch and the stance; the mutation tests are the check that does not depend
