@@ -272,7 +272,8 @@ is specific to this ticket (the prompt blocks in the appendix). This section hol
 behind the definitions.
 
 - **Dispatch only by named type** (`builder`, `reviewer`, `researcher`, or `general-purpose` for
-  ops work), never as a fork or an agent-team teammate. Why: a fork inherits the coordinator's
+  ops work and, in single-writer mode (section 1), for delegated writing of non-code artifacts such as
+  report chapters, schematics and simulation runs, one dispatch per file set named in the prompt), never as a fork or an agent-team teammate. Why: a fork inherits the coordinator's
   whole conversation, which is exactly the cost a fresh agent avoids; agent teams are experimental,
   cannot resume in-process teammates, give no file isolation and start every teammate in the lead's
   permission mode. Revisit teams only for parallel review lenses (security, performance, tests).
