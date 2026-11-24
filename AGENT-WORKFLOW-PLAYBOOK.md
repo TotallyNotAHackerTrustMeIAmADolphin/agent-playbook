@@ -558,7 +558,9 @@ plugin's `land.sh` (item 10). Why: items 2, 4, 5 and 8 are what a script makes r
    tree, remove that tree and its local branch (keep the remote one): `worktree unlock`, then
    `worktree remove` (never `--force`); if it refuses, inspect the tree (section 11) first. A
    ticket's tree, branches and builder scratch go only after `MERGED` or `CLOSED`: `land.sh` does
-   it on merge. Review trees: `git worktree add --detach <scratch>/work/rev-<p>[-<k>] <sha>`; the
+   it on merge. Without PRs the coordinator runs `clean-merged.sh <ticket-branch> <merge commit>`
+   after its merge: same removal, with the merge state (the commit is on `origin/main` and holds the
+   branch's patch) in place of the PR state; a branch with later commits is kept. Review trees: `git worktree add --detach <scratch>/work/rev-<p>[-<k>] <sha>`; the
    coordinator removes each with `worktree remove` after its verdict.
    Weekly, from A8 with nothing in flight: the plugin's `hygiene.sh` removes what is left of
    merged or closed tickets and reviews, lists `agent-*` trees (a builder that died before
@@ -883,4 +885,4 @@ Dispatch prompt: `Research question: <one question>, feeding ticket #<n>. Findin
 | Risk class | The gate level a PR gets, decided by the files it touches (section 5) |
 | Human-only skill | A skill with `disable-model-invocation: true`; only the owner starts it |
 | Reviewed head | The full sha named in a CLEAN verdict; the only sha that may be merged |
-| `<scratch>` | The project's scratch directory outside the repo, an absolute path in `env.PLAYBOOK_SCRATCH` (P6); the agent definitions resolve it once and use it literally |
+| `<scratch>` | The project's scratch directory, outside the repo or a git-ignored folder in it (`<repo>/.scratch`), an absolute path in `env.PLAYBOOK_SCRATCH` (P6); the agent definitions resolve it once and use it literally |

@@ -1,5 +1,5 @@
-# Sourced by land.sh and hygiene.sh (playbook section 8, item 8). Call only after the branch's
-# PR is MERGED or CLOSED. remove_branch <branch>: for a ticket-<n>[-<k>] branch only, unlocks and
+# Sourced by land.sh, hygiene.sh and clean-merged.sh (playbook section 8, item 8). Call only after the branch's
+# PR (or, without PRs, clean-merged.sh) shows it merged or closed. remove_branch <branch>: for a ticket-<n>[-<k>] branch only, unlocks and
 # removes its worktree (never --force), deletes the local and the remote branch and the builder's
 # scratch subdir. Returns 2 for any other branch name (touches nothing), 1 if the tree will not go
 # (it stays, locked again: inspect it, section 11) or the remote branch survives.

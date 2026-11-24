@@ -129,7 +129,7 @@ done
 s=$(sed -n 's/.*"PLAYBOOK_SCRATCH" *: *"\([^"]*\)".*/\1/p' .claude/settings.local.json 2>/dev/null | sed 's/\\\\/\\/g')
 case "$s" in
   '') fail "PLAYBOOK_SCRATCH missing from .claude/settings.local.json (README; P6)";;
-  /*|[A-Za-z]:[/\\]*) [ -d "$s" ] && ok "PLAYBOOK_SCRATCH exists" || fail "PLAYBOOK_SCRATCH '$s' does not exist (create it, outside cloud-synced folders)";;
+  /*|[A-Za-z]:[/\\]*) [ -d "$s" ] && ok "PLAYBOOK_SCRATCH exists" || fail "PLAYBOOK_SCRATCH '$s' does not exist (create it, outside cloud-synced folders; a git-ignored folder in the repo is fine)";;
   *) fail "PLAYBOOK_SCRATCH '$s' is not an absolute path";;
 esac
 git ls-files --error-unmatch .claude/settings.local.json >/dev/null 2>&1 &&
