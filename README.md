@@ -78,11 +78,16 @@ an absolute path that differs per machine, into `.claude/settings.local.json`:
 { "env": { "PLAYBOOK_SCRATCH": "<absolute scratch dir outside the repo>" } }
 ```
 
+The directory may also be a git-ignored folder inside the repo (`<repo>/.scratch`): the project then stays
+in one folder. Not yet measured there: a full builder run with hook, hand-back gate and batch CI.
+Claude Code reads `env` at session start, so a changed `PLAYBOOK_SCRATCH` takes effect in the next
+session; a dispatch before that still lands in the old directory.
+
 Keep the scratch directory and the repository out of cloud-synced folders (OneDrive, Dropbox,
 Nextcloud): every agent worktree lands in scratch and the sync client re-reads each one, and an
 online-only placeholder in `.git` makes `git worktree add` fail.
 
-The plugin also ships `land.sh` and `hygiene.sh` (playbook section 8) and `batch-ci.sh`
+The plugin also ships `land.sh`, `hygiene.sh` and `clean-merged.sh` (playbook section 8) and `batch-ci.sh`
 (A9) for the coordinator and `usage.py`, which reads the subscription's 5-hour and weekly limits (section 7); its
 hooks create every agent worktree under `$PLAYBOOK_SCRATCH/work/` from a fresh
 `origin/main`, refuse a builder's hand-back while `PLAYBOOK_BUILDER_CHECK` fails in its tree, and
