@@ -79,7 +79,8 @@ an absolute path that differs per machine, into `.claude/settings.local.json`:
 ```
 
 The directory may also be a git-ignored folder inside the repo (`<repo>/.scratch`): the project then stays
-in one folder. Not yet measured there: a full builder run with hook, hand-back gate and batch CI.
+in one folder, but only if no sync client touches the repo, or it ignores `.scratch`: boardproof saw foreign
+files ("conflicted copy") appear in worktrees there and fail the lint run. Not yet measured there: a full builder run with hook, hand-back gate and batch CI.
 Claude Code reads `env` at session start, so a changed `PLAYBOOK_SCRATCH` takes effect in the next
 session; a dispatch before that still lands in the old directory.
 
